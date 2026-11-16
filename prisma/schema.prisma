@@ -1,0 +1,66 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// Merch catalogue. colors / sizes are JSON string arrays
+// (SQLite has no list primitives).
+model Product {
+  id        String      @id @default(cuid())
+  type      String // tshirt | lacoste | jersey | cap
+  ageGroup  String // adult | kid
+  name      String
+  tagline   String?
+  price     Float
+  image     String
+  colors    String // JSON: [{name, hex}]
+  sizes     String // JSON: [string]
+  capStyles String? // JSON: [string] — only for caps (soft / hard)
+  badge     String?
+  sortOrder Int         @default(0)
+  active    Boolean     @default(true)
+  createdAt DateTime    @default(now())
+  items     OrderItem[]
+}
+
+model Order {
+  id            String      @id @default(cuid())
+  code          String      @unique // e.g. SHL-7K2P9X — used as MoMo reference
+  fullName      String
+  phone         String
+  address       String?
+  status        String      @default("pending") // pending | reviewing | contacted | fulfilled | cancelled
+  paymentStatus String      @default("unpaid") // unpaid | verifying | paid
+  subtotal      Float
+  total         Float
+  adminNotes    String?
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  items         OrderItem[]
+}
+
+model OrderItem {
+  id          String   @id @default(cuid())
+  orderId     String
+  order       Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId   String
+  product     Product  @relation(fields: [productId], references: [id])
+  productName String
+  productType String
+  ageGroup    String
+  color       String
+  size        String
+  capStyle    String?
+  unitPrice   Float
+  quantity    Int
+}
+
+// Simple key/value store: momo_number, momo_name, admin_password, announcement
+model Setting {
+  key   String @id
+  value String
+}
