@@ -149,9 +149,10 @@ export function ProductGallery({
         ) : null}
       </div>
 
-      {/* Thumbnails: 2×2 grid in the narrow mobile column, labelled row on sm+ */}
+      {/* Thumbnails: single labelled row at every breakpoint (same layout as
+          desktop) — compact image-only tiles on mobile so all views fit. */}
       {views.length > 1 ? (
-        <div className="grid grid-cols-2 gap-1.5 sm:flex sm:items-center sm:gap-2" role="tablist" aria-label="Product views">
+        <div className="flex items-center gap-1.5 sm:gap-2" role="tablist" aria-label="Product views">
           {views.map((v, i) => (
             <button
               key={v.src}
@@ -161,7 +162,7 @@ export function ProductGallery({
               aria-label={`Show ${v.label} view`}
               onClick={() => jumpTo(i)}
               className={cn(
-                "group/th relative overflow-hidden rounded-lg border-2 transition-all duration-300 sm:flex-1 sm:rounded-xl",
+                "group/th relative flex-1 overflow-hidden rounded-md border-2 transition-all duration-300 sm:rounded-xl",
                 i === index
                   ? "border-gold shadow-[0_8px_20px_-10px_var(--gold)]"
                   : "border-border opacity-60 hover:opacity-100"
@@ -172,7 +173,7 @@ export function ProductGallery({
               </span>
               <span
                 className={cn(
-                  "block px-1 py-1 text-center text-[0.55rem] font-bold uppercase tracking-[0.14em] sm:text-[0.58rem]",
+                  "hidden px-1 py-1 text-center text-[0.58rem] font-bold uppercase tracking-[0.14em] sm:block",
                   i === index ? "bg-gold/15 text-gold" : "text-muted-foreground"
                 )}
               >

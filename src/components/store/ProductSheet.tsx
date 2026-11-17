@@ -218,8 +218,8 @@ export function ProductSheet() {
 
   return (
     <Drawer open={!!activeProduct} onOpenChange={(open) => !open && closeProduct()}>
-      <DrawerContent className="drawer-wide flex max-h-[92dvh] flex-col border-t border-gold/20 bg-card">
-        <div className="mx-auto mb-3 mt-3 h-1 w-10 shrink-0 rounded-full bg-muted-foreground/30 sm:hidden" aria-hidden />
+      <DrawerContent className="drawer-wide flex max-h-[96dvh] flex-col border-t border-gold/20 bg-card">
+        <div className="mx-auto mb-3 mt-3 h-1 w-10 shrink-0 rounded-full bg-muted-foreground/30" aria-hidden />
         {/* Inner column fills the full width of the wider (44rem) drawer so the
             original two-column layout breathes: gallery left, details right. */}
         {activeProduct ? (
