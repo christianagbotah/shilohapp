@@ -1,16 +1,20 @@
 "use client";
 
 import { useState } from "react";
-import { ArrowLeft, Crown, Loader2, Lock } from "lucide-react";
+import { ArrowLeft, Loader2, Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useUi } from "@/store/ui";
-import { fetchJson } from "@/hooks/use-store-data";
+import { fetchJson, useStoreInfo } from "@/hooks/use-store-data";
+import { BrandLogo } from "@/components/store/BrandLogo";
+import { STORE_INFO_DEFAULTS } from "@/lib/types";
 
 export function AdminGate() {
   const setAdminToken = useUi((s) => s.setAdminToken);
   const setView = useUi((s) => s.setView);
+  const { data: info } = useStoreInfo();
+  const year = info?.shilohYear ?? STORE_INFO_DEFAULTS.shilohYear;
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -45,12 +49,10 @@ export function AdminGate() {
         className="relative w-full max-w-sm rounded-3xl border border-border bg-card p-7 shadow-2xl"
       >
         <div className="mb-6 flex flex-col items-center text-center">
-          <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-gold to-gold-deep text-primary-foreground shadow-[0_10px_28px_-8px_var(--gold)]">
-            <Crown className="h-7 w-7" aria-hidden />
-          </span>
+          <BrandLogo size={56} priority />
           <h1 className="mt-4 font-display text-2xl font-bold">Back Office</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Shiloh 2026 Merch — orders &amp; payments
+            Shiloh {year} Merch — orders &amp; payments
           </p>
         </div>
 

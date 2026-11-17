@@ -1,11 +1,13 @@
 "use client";
 
-import { Crown, ShoppingBag, Truck } from "lucide-react";
+import { ShoppingBag, Truck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useCart, cartCount } from "@/store/cart";
 import { useUi } from "@/store/ui";
 import { useStoreInfo } from "@/hooks/use-store-data";
 import { useMounted } from "@/hooks/use-mounted";
+import { BrandLogo } from "@/components/store/BrandLogo";
+import { STORE_INFO_DEFAULTS } from "@/lib/types";
 
 const NAV_LINKS = [
   { href: "#shop", label: "Shop" },
@@ -20,6 +22,7 @@ export function Header() {
   const setTrackOpen = useUi((s) => s.setTrackOpen);
   const { data: info } = useStoreInfo();
   const mounted = useMounted();
+  const year = info?.shilohYear ?? STORE_INFO_DEFAULTS.shilohYear;
 
   const count = mounted ? cartCount(items) : 0;
 
@@ -35,14 +38,12 @@ export function Header() {
       ) : null}
       <div className="border-b border-border bg-background/85 backdrop-blur-xl">
         <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-3 px-4 sm:px-6">
-          <a href="#top" className="flex items-center gap-2.5" aria-label="Shiloh 2026 Merch — home">
-            <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-gold to-gold-deep text-primary-foreground shadow-[0_6px_20px_-6px_var(--gold)]">
-              <Crown className="h-5 w-5" aria-hidden />
-            </span>
+          <a href="#top" className="flex items-center gap-2.5" aria-label={`Shiloh ${year} Merch — home`}>
+            <BrandLogo size={40} priority />
             <span className="flex flex-col leading-none">
               <span className="font-display text-lg font-bold tracking-wide">SHILOH</span>
               <span className="text-[0.6rem] font-semibold uppercase tracking-[0.28em] text-muted-foreground">
-                2026 Merch
+                {year} Merch
               </span>
             </span>
           </a>

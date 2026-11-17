@@ -38,12 +38,14 @@ import {
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useUi } from "@/store/ui";
-import { fetchJson } from "@/hooks/use-store-data";
+import { fetchJson, useStoreInfo } from "@/hooks/use-store-data";
 import { useToast } from "@/hooks/use-toast";
 import { formatGhs } from "@/lib/format";
+import { BrandLogo } from "@/components/store/BrandLogo";
 import {
   ORDER_STATUS_LABELS,
   PAYMENT_STATUS_LABELS,
+  STORE_INFO_DEFAULTS,
   type AdminStats,
   type OrderDTO,
   type OrderStatus,
@@ -553,17 +555,17 @@ export function AdminDashboard() {
   const setAdminToken = useUi((s) => s.setAdminToken);
   const setView = useUi((s) => s.setView);
   const { data } = useAdminOrders();
+  const { data: info } = useStoreInfo();
+  const year = info?.shilohYear ?? STORE_INFO_DEFAULTS.shilohYear;
 
   return (
     <div className="min-h-dvh bg-background">
       <header className="sticky top-0 z-40 border-b border-border bg-background/85 backdrop-blur-xl">
         <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-3 px-4 sm:px-6">
           <div className="flex items-center gap-3">
-            <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-gold to-gold-deep text-primary-foreground">
-              <ShoppingBag className="h-4.5 w-4.5" aria-hidden />
-            </span>
+            <BrandLogo size={38} />
             <div className="leading-none">
-              <p className="font-display text-base font-bold">Shiloh 2026 — Back Office</p>
+              <p className="font-display text-base font-bold">Shiloh {year} — Back Office</p>
               <p className="mt-1 text-[0.62rem] font-semibold uppercase tracking-[0.22em] text-muted-foreground">
                 Orders &amp; Payments
               </p>

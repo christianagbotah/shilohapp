@@ -159,6 +159,11 @@ async function main() {
     momo_network: "MTN MoMo",
     admin_password: hash("shiloh2026"),
     announcement: "Order early — every order is delivered before Dec 8, Shiloh week.",
+    // Event branding — editable every year from the Back Office
+    shiloh_year: "2026",
+    shiloh_tagline: "Far Above",
+    shiloh_dates: "December 8–13",
+    shiloh_start: "2026-12-08",
   };
   for (const [key, value] of Object.entries(settings)) {
     await db.setting.upsert({ where: { key }, update: {}, create: { key, value } });

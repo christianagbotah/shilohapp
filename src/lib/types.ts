@@ -29,7 +29,20 @@ export type StoreInfo = {
   momoName: string;
   momoNetwork: string;
   announcement: string;
+  /** Event branding — editable every year from the Back Office */
+  shilohYear: string; // e.g. "2026"
+  shilohTagline: string; // e.g. "Far Above"
+  shilohDates: string; // e.g. "December 8–13"
+  shilohStart: string; // ISO date the countdown targets, e.g. "2026-12-08"
 };
+
+/** Fallbacks used while settings load or if they are missing */
+export const STORE_INFO_DEFAULTS = {
+  shilohYear: "2026",
+  shilohTagline: "Far Above",
+  shilohDates: "December 8–13",
+  shilohStart: "2026-12-08",
+} as const;
 
 export type OrderStatus = "pending" | "reviewing" | "contacted" | "fulfilled" | "cancelled";
 export type PaymentStatus = "unpaid" | "verifying" | "paid";

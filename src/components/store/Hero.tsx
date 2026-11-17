@@ -1,12 +1,28 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import { motion } from "framer-motion";
-import { ArrowDown, BadgeCheck, ShieldCheck, Smartphone, Sparkles, Truck } from "lucide-react";
+import {
+  ArrowDown,
+  BadgeCheck,
+  Expand,
+  ShieldCheck,
+  Smartphone,
+  Sparkles,
+  Truck,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
-
-const SHILOH_START = new Date("2026-12-08T00:00:00Z").getTime(); // Ghana is UTC+0
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { BrandLogo, SHILOH_FLYER_SRC } from "@/components/store/BrandLogo";
+import { useStoreInfo } from "@/hooks/use-store-data";
+import { STORE_INFO_DEFAULTS } from "@/lib/types";
 
 function useCountdown(target: number) {
   const [now, setNow] = useState<number | null>(null);
@@ -30,8 +46,18 @@ function useCountdown(target: number) {
   };
 }
 
-function Countdown() {
-  const t = useCountdown(SHILOH_START);
+function Countdown({ startIso, year, dates }: { startIso: string; year: string; dates: string }) {
+  const target = useMemo(() => new Date(`${startIso}T00:00:00Z`).getTime(), [startIso]);
+  const t = useCountdown(target);
+  const startLabel = useMemo(
+    () =>
+      new Date(`${startIso}T00:00:00Z`).toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric",
+        timeZone: "UTC",
+      }),
+    [startIso]
+  );
   const units: Array<{ value: number | null; label: string }> = [
     { value: t?.days ?? null, label: "Days" },
     { value: t?.hours ?? null, label: "Hours" },
@@ -41,14 +67,14 @@ function Countdown() {
   if (t?.live) {
     return (
       <p className="gold-panel inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-sm font-semibold text-gold">
-        <Sparkles className="h-4 w-4" aria-hidden /> Shiloh 2026 is live — Dec 8–13
+        <Sparkles className="h-4 w-4" aria-hidden /> Shiloh {year} is live — {dates}
       </p>
     );
   }
   return (
-    <div className="flex items-end gap-2 sm:gap-3" role="timer" aria-label="Countdown to Shiloh 2026">
+    <div className="flex items-end gap-2 sm:gap-3" role="timer" aria-label={`Countdown to Shiloh ${year}`}>
       <span className="pb-2 pr-1 text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground sm:text-sm">
-        Dec 8 in
+        {startLabel} in
       </span>
       {units.map((u) => (
         <div
@@ -73,15 +99,27 @@ const fadeUp = {
 };
 
 export function Hero() {
+  const { data: info } = useStoreInfo();
+  const [flyerOpen, setFlyerOpen] = useState(false);
+
+  const year = info?.shilohYear ?? STORE_INFO_DEFAULTS.shilohYear;
+  const tagline = info?.shilohTagline ?? STORE_INFO_DEFAULTS.shilohTagline;
+  const dates = info?.shilohDates ?? STORE_INFO_DEFAULTS.shilohDates;
+  const startIso = info?.shilohStart ?? STORE_INFO_DEFAULTS.shilohStart;
+
   return (
     <section id="top" className="hero-radial relative overflow-hidden">
       <div className="dot-grid pointer-events-none absolute inset-0" aria-hidden />
       <div className="relative mx-auto grid max-w-6xl items-center gap-10 px-4 pb-14 pt-10 sm:px-6 sm:pt-14 lg:grid-cols-[1.05fr_0.95fr] lg:gap-12 lg:pb-20 lg:pt-20">
         <div className="flex flex-col items-start gap-6">
           <motion.div {...fadeUp} transition={{ duration: 0.55, ease: "easeOut" }}>
-            <span className="inline-flex items-center gap-2 rounded-full border border-gold/30 bg-gold/10 px-4 py-1.5 text-[0.68rem] font-semibold uppercase tracking-[0.22em] text-gold">
-              <Sparkles className="h-3.5 w-3.5" aria-hidden />
-              Winners Chapel International • Dec 8–13
+            <span className="inline-flex flex-wrap items-center gap-x-2.5 gap-y-1 rounded-full border border-gold/30 bg-gold/10 px-4 py-1.5 text-[0.68rem] font-semibold uppercase tracking-[0.22em] text-gold">
+              <BrandLogo size={26} priority />
+              <span>Winners Chapel International</span>
+              <span className="hidden sm:inline" aria-hidden>
+                •
+              </span>
+              <span className="text-gold/90">{dates}</span>
             </span>
           </motion.div>
 
@@ -90,9 +128,8 @@ export function Hero() {
             transition={{ duration: 0.55, delay: 0.08, ease: "easeOut" }}
             className="font-display text-5xl font-bold uppercase leading-[0.95] tracking-tight sm:text-6xl lg:text-7xl"
           >
-            Wear the
-            <br />
-            <span className="text-gold-gradient glow-gold">Glory</span>
+            Shiloh {year}
+            <span className="mt-2 block normal-case text-gold-gradient glow-gold">{tagline}</span>
           </motion.h1>
 
           <motion.p
@@ -100,8 +137,8 @@ export function Hero() {
             transition={{ duration: 0.55, delay: 0.16, ease: "easeOut" }}
             className="max-w-md text-base leading-relaxed text-muted-foreground sm:text-lg"
           >
-            The official <span className="font-semibold text-foreground">Shiloh 2026</span> convocation
-            merch — premium t-shirts, lacostes, jerseys and caps for adults and kids. Order in under a
+            The official <span className="font-semibold text-foreground">Shiloh {year}</span> merch —
+            premium t-shirts, lacostes, jerseys and caps for adults and kids. Order in under a
             minute, pay with Mobile Money, anywhere in Ghana.
           </motion.p>
 
@@ -133,7 +170,7 @@ export function Hero() {
             transition={{ duration: 0.55, delay: 0.32, ease: "easeOut" }}
             className="w-full"
           >
-            <Countdown />
+            <Countdown startIso={startIso} year={year} dates={dates} />
           </motion.div>
 
           <motion.ul
@@ -159,17 +196,26 @@ export function Hero() {
           transition={{ duration: 0.7, delay: 0.15, ease: "easeOut" }}
           className="relative mx-auto w-full max-w-lg lg:max-w-none"
         >
-          <div className="glow-gold relative aspect-[5/4] overflow-hidden rounded-3xl border border-gold/25">
+          <button
+            type="button"
+            onClick={() => setFlyerOpen(true)}
+            aria-label={`View the official Shiloh ${year} flyer`}
+            className="glow-gold group relative block aspect-[16/10] w-full overflow-hidden rounded-3xl border border-gold/25 bg-secondary/40"
+          >
             <Image
-              src="/products/hero.png"
-              alt="Shiloh 2026 merch collection — t-shirts, lacoste and cap"
+              src={SHILOH_FLYER_SRC}
+              alt={`Official Shiloh ${year} — ${tagline} flyer, Winners Chapel International`}
               fill
               sizes="(max-width: 1024px) 100vw, 560px"
-              className="object-cover"
+              className="object-contain p-2 transition-transform duration-500 group-hover:scale-[1.02] sm:p-3"
               priority
             />
-            <div className="absolute inset-0 bg-gradient-to-t from-background/50 via-transparent to-transparent" aria-hidden />
-          </div>
+            <span className="absolute inset-x-0 bottom-0 flex justify-center pb-3 pt-10">
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-gold/30 bg-background/85 px-3.5 py-1.5 text-xs font-semibold text-gold shadow-lg backdrop-blur transition-colors group-hover:bg-background">
+                <Expand className="h-3.5 w-3.5" aria-hidden /> View flyer
+              </span>
+            </span>
+          </button>
 
           <motion.div
             animate={{ y: [0, -10, 0] }}
@@ -195,6 +241,28 @@ export function Hero() {
           </motion.div>
         </motion.div>
       </div>
+
+      <Dialog open={flyerOpen} onOpenChange={setFlyerOpen}>
+        <DialogContent className="max-h-[92dvh] max-w-3xl overflow-y-auto border-gold/25 bg-card p-4 sm:p-6">
+          <DialogHeader>
+            <DialogTitle className="font-display uppercase">
+              Shiloh {year} — <span className="text-gold-gradient">{tagline}</span>
+            </DialogTitle>
+            <DialogDescription>
+              Official convocation flyer • Winners Chapel International • {dates}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="relative mx-auto aspect-video w-full max-w-2xl overflow-hidden rounded-2xl bg-secondary/40">
+            <Image
+              src={SHILOH_FLYER_SRC}
+              alt={`Official Shiloh ${year} — ${tagline} flyer, Winners Chapel International`}
+              fill
+              sizes="(max-width: 768px) 90vw, 640px"
+              className="object-contain"
+            />
+          </div>
+        </DialogContent>
+      </Dialog>
     </section>
   );
 }

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { KeyRound, Loader2, Save, Settings2, Wallet } from "lucide-react";
+import { KeyRound, Loader2, Save, Settings2, Sparkles, Wallet } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -14,6 +14,10 @@ type SettingsResponse = {
   momoNumber: string;
   momoName: string;
   announcement: string;
+  shilohYear: string;
+  shilohTagline: string;
+  shilohDates: string;
+  shilohStart: string;
 };
 
 export function AdminSettings({ token }: { token: string }) {
@@ -22,8 +26,13 @@ export function AdminSettings({ token }: { token: string }) {
   const [momoNumber, setMomoNumber] = useState("");
   const [momoName, setMomoName] = useState("");
   const [announcement, setAnnouncement] = useState("");
+  const [shilohYear, setShilohYear] = useState("");
+  const [shilohTagline, setShilohTagline] = useState("");
+  const [shilohDates, setShilohDates] = useState("");
+  const [shilohStart, setShilohStart] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [savingBranding, setSavingBranding] = useState(false);
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [savingPassword, setSavingPassword] = useState(false);
@@ -38,6 +47,10 @@ export function AdminSettings({ token }: { token: string }) {
         setMomoNumber(res.momoNumber);
         setMomoName(res.momoName);
         setAnnouncement(res.announcement);
+        setShilohYear(res.shilohYear);
+        setShilohTagline(res.shilohTagline);
+        setShilohDates(res.shilohDates);
+        setShilohStart(res.shilohStart);
       })
       .catch((err) => {
         toast({
@@ -51,6 +64,49 @@ export function AdminSettings({ token }: { token: string }) {
       cancelled = true;
     };
   }, [token]);
+
+  const saveBranding = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!/^\d{4}$/.test(shilohYear.trim())) {
+      toast({
+        title: "Invalid year",
+        description: "Enter a 4-digit year, e.g. 2026.",
+        variant: "destructive",
+      });
+      return;
+    }
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(shilohStart.trim())) {
+      toast({
+        title: "Invalid start date",
+        description: "Use the YYYY-MM-DD format, e.g. 2026-12-08.",
+        variant: "destructive",
+      });
+      return;
+    }
+    setSavingBranding(true);
+    try {
+      await fetchJson("/api/admin/settings", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json", "x-admin-token": token },
+        body: JSON.stringify({
+          shilohYear: shilohYear.trim(),
+          shilohTagline: shilohTagline.trim(),
+          shilohDates: shilohDates.trim(),
+          shilohStart: shilohStart.trim(),
+        }),
+      });
+      await queryClient.invalidateQueries({ queryKey: ["store-info"] });
+      toast({ title: "Event branding saved", description: "The storefront now shows the new year and tagline." });
+    } catch (err) {
+      toast({
+        title: "Save failed",
+        description: err instanceof Error ? err.message : undefined,
+        variant: "destructive",
+      });
+    } finally {
+      setSavingBranding(false);
+    }
+  };
 
   const saveStore = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -126,6 +182,93 @@ export function AdminSettings({ token }: { token: string }) {
 
   return (
     <div className="grid gap-5 lg:grid-cols-2">
+      <form onSubmit={saveBranding} className="rounded-3xl border border-gold/30 bg-card p-6">
+        <div className="flex items-center gap-3">
+          <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-gold/15 text-gold">
+            <Sparkles className="h-5 w-5" aria-hidden />
+          </span>
+          <div>
+            <h2 className="font-display text-lg font-bold">Shiloh Branding — update every year</h2>
+            <p className="text-xs text-muted-foreground">
+              Drives the headline (SHILOH + tagline), dates and countdown across the store
+            </p>
+          </div>
+        </div>
+
+        <div className="mt-5 grid gap-4">
+          <div className="grid grid-cols-2 gap-4">
+            <div className="grid gap-2">
+              <Label htmlFor="shiloh-year" className="text-sm font-semibold">
+                Year
+              </Label>
+              <Input
+                id="shiloh-year"
+                value={shilohYear}
+                onChange={(e) => setShilohYear(e.target.value)}
+                placeholder="2026"
+                inputMode="numeric"
+                maxLength={4}
+                className="h-12 rounded-xl border-border bg-background/60 text-base"
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="shiloh-start" className="text-sm font-semibold">
+                Starts on
+              </Label>
+              <Input
+                id="shiloh-start"
+                value={shilohStart}
+                onChange={(e) => setShilohStart(e.target.value)}
+                placeholder="2026-12-08"
+                className="h-12 rounded-xl border-border bg-background/60 font-mono text-base"
+              />
+            </div>
+          </div>
+          <div className="grid gap-2">
+            <Label htmlFor="shiloh-tagline" className="text-sm font-semibold">
+              Tagline (theme)
+            </Label>
+            <Input
+              id="shiloh-tagline"
+              value={shilohTagline}
+              onChange={(e) => setShilohTagline(e.target.value)}
+              placeholder="Far Above"
+              className="h-12 rounded-xl border-border bg-background/60 text-base"
+              maxLength={60}
+            />
+            <p className="text-xs text-muted-foreground">
+              Shown on the second line of the headline, e.g. SHILOH 2026 → Far Above.
+            </p>
+          </div>
+          <div className="grid gap-2">
+            <Label htmlFor="shiloh-dates" className="text-sm font-semibold">
+              Dates label
+            </Label>
+            <Input
+              id="shiloh-dates"
+              value={shilohDates}
+              onChange={(e) => setShilohDates(e.target.value)}
+              placeholder="December 8–13"
+              className="h-12 rounded-xl border-border bg-background/60 text-base"
+              maxLength={60}
+            />
+          </div>
+        </div>
+
+        <Button
+          type="submit"
+          disabled={savingBranding}
+          className="mt-5 h-12 w-full rounded-full bg-gradient-to-r from-gold to-gold-deep font-bold text-primary-foreground hover:opacity-95"
+        >
+          {savingBranding ? (
+            <Loader2 className="mr-2 h-4.5 w-4.5 animate-spin" aria-hidden />
+          ) : (
+            <Save className="mr-2 h-4.5 w-4.5" aria-hidden />
+          )}
+          {savingBranding ? "Saving…" : "Save event branding"}
+        </Button>
+      </form>
+
       <form onSubmit={saveStore} className="gold-panel rounded-3xl p-6">
         <div className="flex items-center gap-3">
           <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-gold/15 text-gold">

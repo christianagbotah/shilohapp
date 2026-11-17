@@ -3,8 +3,13 @@
 import { motion } from "framer-motion";
 import { ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useStoreInfo } from "@/hooks/use-store-data";
+import { STORE_INFO_DEFAULTS } from "@/lib/types";
 
 export function CtaBand() {
+  const { data: info } = useStoreInfo();
+  const year = info?.shilohYear ?? STORE_INFO_DEFAULTS.shilohYear;
+  const dates = info?.shilohDates ?? STORE_INFO_DEFAULTS.shilohDates;
   return (
     <section className="mx-auto max-w-6xl px-4 py-14 sm:px-6 sm:py-20">
       <motion.div
@@ -18,7 +23,7 @@ export function CtaBand() {
           The convocation is <span className="text-gold-gradient glow-gold">almost here</span>
         </h2>
         <p className="mx-auto mt-3 max-w-md text-sm leading-relaxed text-muted-foreground sm:text-base">
-          Order now so your family walks into Shiloh 2026 — Dec 8–13 — wearing the glory.
+          Order now so your family walks into Shiloh {year} — {dates} — wearing the glory.
         </p>
         <Button
           asChild

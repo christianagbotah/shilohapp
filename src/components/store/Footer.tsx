@@ -1,13 +1,17 @@
 "use client";
 
-import { Crown, Lock, MapPin } from "lucide-react";
+import { Lock, MapPin } from "lucide-react";
 import { useUi } from "@/store/ui";
 import { useStoreInfo } from "@/hooks/use-store-data";
+import { BrandLogo } from "@/components/store/BrandLogo";
+import { STORE_INFO_DEFAULTS } from "@/lib/types";
 
 export function Footer() {
   const setView = useUi((s) => s.setView);
   const setTrackOpen = useUi((s) => s.setTrackOpen);
   const { data: info } = useStoreInfo();
+  const year = info?.shilohYear ?? STORE_INFO_DEFAULTS.shilohYear;
+  const tagline = info?.shilohTagline ?? STORE_INFO_DEFAULTS.shilohTagline;
 
   return (
     <footer className="mt-auto border-t border-border bg-secondary/30">
@@ -15,13 +19,11 @@ export function Footer() {
         <div className="grid gap-10 sm:grid-cols-2 lg:grid-cols-4">
           <div className="lg:col-span-2">
             <div className="flex items-center gap-2.5">
-              <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-gold to-gold-deep text-primary-foreground">
-                <Crown className="h-5 w-5" aria-hidden />
-              </span>
+              <BrandLogo size={40} />
               <span className="flex flex-col leading-none">
                 <span className="font-display text-lg font-bold tracking-wide">SHILOH</span>
                 <span className="text-[0.6rem] font-semibold uppercase tracking-[0.28em] text-muted-foreground">
-                  2026 Merch
+                  {year} Merch
                 </span>
               </span>
             </div>
@@ -76,9 +78,9 @@ export function Footer() {
         </div>
 
         <div className="mt-10 flex flex-col items-center justify-between gap-3 border-t border-border pt-6 text-center text-xs text-muted-foreground sm:flex-row sm:text-left">
-          <p>© 2026 Shiloh Merch Store • Winners Chapel International, Ghana</p>
+          <p>© {year} Shiloh Merch Store • Winners Chapel International, Ghana</p>
           <p className="font-display font-semibold uppercase tracking-[0.2em] text-gold/80">
-            Wear the Glory
+            {tagline}
           </p>
         </div>
       </div>

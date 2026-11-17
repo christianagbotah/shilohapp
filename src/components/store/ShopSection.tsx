@@ -6,10 +6,10 @@ import { motion } from "framer-motion";
 import { Plus, RefreshCcw, Shirt } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useProducts } from "@/hooks/use-store-data";
+import { useProducts, useStoreInfo } from "@/hooks/use-store-data";
 import { useUi } from "@/store/ui";
 import { formatGhs } from "@/lib/format";
-import { PRODUCT_TYPE_LABELS, type ProductDTO } from "@/lib/types";
+import { PRODUCT_TYPE_LABELS, STORE_INFO_DEFAULTS, type ProductDTO } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 type Filter = "all" | "tshirt" | "lacoste" | "jersey" | "cap" | "adult" | "kid";
@@ -118,6 +118,8 @@ function CardSkeleton() {
 export function ShopSection() {
   const [filter, setFilter] = useState<Filter>("all");
   const { data: products, isLoading, isError, refetch } = useProducts();
+  const { data: info } = useStoreInfo();
+  const year = info?.shilohYear ?? STORE_INFO_DEFAULTS.shilohYear;
 
   return (
     <section id="shop" className="mx-auto w-full max-w-6xl scroll-mt-24 px-4 py-14 sm:px-6 sm:py-20">
@@ -128,7 +130,7 @@ export function ShopSection() {
             Shop the Merch
           </h2>
           <p className="mt-3 max-w-xl text-sm leading-relaxed text-muted-foreground sm:text-base">
-            Every piece carries the Shiloh 2026 gold crest. Choose your type, colour, size and
+            Every piece carries the Shiloh {year} gold crest. Choose your type, colour, size and
             quantity — for every member of the family.
           </p>
         </div>
