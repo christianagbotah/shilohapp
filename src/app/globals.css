@@ -104,6 +104,29 @@
   ::selection {
     background: oklch(0.86 0.13 88 / 0.3);
   }
+
+  /* Every interactive element shows the pointer cursor (buttons default to
+     the arrow cursor in browsers); disabled ones show "not allowed". */
+  button:not(:disabled),
+  [role="button"]:not(:disabled),
+  [role="tab"],
+  [role="menuitem"]:not([data-disabled]),
+  [role="option"]:not([data-disabled]),
+  [role="switch"]:not(:disabled),
+  [role="checkbox"]:not(:disabled),
+  [role="radio"]:not(:disabled),
+  a[href],
+  [role="link"],
+  select:not(:disabled),
+  summary,
+  label[for] {
+    cursor: pointer;
+  }
+  button:disabled,
+  [role="button"]:disabled,
+  select:disabled {
+    cursor: not-allowed;
+  }
 }
 
 /* ---------- Signature utilities ---------- */
