@@ -68,18 +68,20 @@ function Options({ product }: { product: ProductDTO }) {
   return (
     <>
       <div className="pretty-scroll flex-1 overflow-y-auto p-4 sm:p-6">
-        <div className="grid gap-5 sm:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)]">
+        {/* Two columns at every breakpoint: gallery (image + thumbs) left,
+            description / colour / size right. */}
+        <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)] gap-4 sm:gap-5">
       <ProductGallery product={product} tintHex={selectedHex} />
 
       <div className="flex min-w-0 flex-col">
         <DrawerTitle asChild>
-          <h2 className="font-display text-xl font-bold leading-tight sm:text-2xl">{product.name}</h2>
+          <h2 className="font-display text-lg font-bold leading-tight sm:text-2xl">{product.name}</h2>
         </DrawerTitle>
         <p className="mt-1 text-sm text-muted-foreground">{product.tagline}</p>
         <p className="mt-2 font-display text-2xl font-bold text-gold">{formatGhs(product.price)}</p>
 
         {/* Colour */}
-        <div className="mt-5">
+        <div className="mt-4 sm:mt-5">
           <p className="mb-2 text-xs font-bold uppercase tracking-[0.18em] text-muted-foreground">
             Colour <span className="ml-1 normal-case tracking-normal text-foreground">— {color}</span>
           </p>
@@ -109,7 +111,7 @@ function Options({ product }: { product: ProductDTO }) {
 
         {/* Cap style */}
         {product.type === "cap" && product.capStyles ? (
-          <div className="mt-5">
+          <div className="mt-4 sm:mt-5">
             <p className="mb-2 text-xs font-bold uppercase tracking-[0.18em] text-muted-foreground">
               Cap style
             </p>
@@ -121,14 +123,14 @@ function Options({ product }: { product: ProductDTO }) {
                   onClick={() => setCapStyle(s)}
                   aria-pressed={capStyle === s}
                   className={cn(
-                    "rounded-xl border px-3 py-2.5 text-left text-sm font-semibold transition-all",
+                    "rounded-xl border px-2.5 py-2 text-left text-sm font-semibold transition-all sm:px-3 sm:py-2.5",
                     capStyle === s
                       ? "border-gold/60 bg-gold/15 text-gold"
                       : "border-border bg-secondary text-muted-foreground hover:text-foreground"
                   )}
                 >
                   {s}
-                  <span className="mt-0.5 block text-[0.68rem] font-normal text-muted-foreground">
+                  <span className="mt-0.5 hidden text-[0.68rem] font-normal text-muted-foreground sm:block">
                     {s === "Soft" ? "Relaxed, unstructured crown" : "Structured, crisp crown"}
                   </span>
                 </button>
@@ -138,7 +140,7 @@ function Options({ product }: { product: ProductDTO }) {
         ) : null}
 
         {/* Size */}
-        <div className="mt-5">
+        <div className="mt-4 sm:mt-5">
           <p className="mb-2 text-xs font-bold uppercase tracking-[0.18em] text-muted-foreground">
             Size {product.type === "cap" ? "" : "— true to fit"}
           </p>

@@ -67,7 +67,7 @@ export function ProductGallery({
   const current = views[index];
 
   return (
-    <div className="flex flex-col gap-3">
+    <div className="flex flex-col gap-2 sm:gap-3">
       <div
         ref={frameRef}
         role="group"
@@ -105,13 +105,13 @@ export function ProductGallery({
         </AnimatePresence>
 
         {product.badge ? (
-          <span className="absolute left-3 top-3 z-10 rounded-full bg-gold px-3 py-1 text-[0.65rem] font-bold uppercase tracking-wider text-primary-foreground shadow-lg">
+          <span className="absolute left-2 top-2 z-10 rounded-full bg-gold px-2 py-0.5 text-[0.55rem] font-bold uppercase tracking-wider text-primary-foreground shadow-lg max-[359px]:hidden sm:left-3 sm:top-3 sm:px-3 sm:py-1 sm:text-[0.65rem]">
             {product.badge}
           </span>
         ) : null}
 
         {/* Current view label */}
-        <div className="absolute right-3 top-3 z-10 overflow-hidden rounded-full">
+        <div className="absolute right-2 top-2 z-10 overflow-hidden rounded-full sm:right-3 sm:top-3">
           <AnimatePresence mode="wait" initial={false}>
             <motion.span
               key={current.label}
@@ -119,7 +119,7 @@ export function ProductGallery({
               animate={{ y: 0, opacity: 1 }}
               exit={{ y: -14, opacity: 0 }}
               transition={{ duration: 0.22, ease: "easeOut" }}
-              className="block bg-background/85 px-3 py-1 text-[0.62rem] font-bold uppercase tracking-[0.18em] text-gold shadow-lg backdrop-blur"
+              className="block bg-background/85 px-2 py-0.5 text-[0.55rem] font-bold uppercase tracking-[0.18em] text-gold shadow-lg backdrop-blur sm:px-3 sm:py-1 sm:text-[0.62rem]"
             >
               {current.label}
             </motion.span>
@@ -133,25 +133,25 @@ export function ProductGallery({
               type="button"
               onClick={() => go(-1)}
               aria-label="Previous view"
-              className="absolute left-2.5 top-1/2 z-10 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border border-white/10 bg-background/70 text-foreground opacity-0 shadow-lg backdrop-blur transition-all duration-300 hover:bg-background focus-visible:opacity-100 group-hover:opacity-100 max-sm:opacity-100"
+              className="absolute left-1.5 top-1/2 z-10 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full border border-white/10 bg-background/70 text-foreground opacity-0 shadow-lg backdrop-blur transition-all duration-300 hover:bg-background focus-visible:opacity-100 group-hover:opacity-100 max-sm:opacity-100 sm:left-2.5 sm:h-10 sm:w-10"
             >
-              <ChevronLeft className="h-5 w-5" aria-hidden />
+              <ChevronLeft className="h-4 w-4 sm:h-5 sm:w-5" aria-hidden />
             </button>
             <button
               type="button"
               onClick={() => go(1)}
               aria-label="Next view"
-              className="absolute right-2.5 top-1/2 z-10 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border border-white/10 bg-background/70 text-foreground opacity-0 shadow-lg backdrop-blur transition-all duration-300 hover:bg-background focus-visible:opacity-100 group-hover:opacity-100 max-sm:opacity-100"
+              className="absolute right-1.5 top-1/2 z-10 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full border border-white/10 bg-background/70 text-foreground opacity-0 shadow-lg backdrop-blur transition-all duration-300 hover:bg-background focus-visible:opacity-100 group-hover:opacity-100 max-sm:opacity-100 sm:right-2.5 sm:h-10 sm:w-10"
             >
-              <ChevronRight className="h-5 w-5" aria-hidden />
+              <ChevronRight className="h-4 w-4 sm:h-5 sm:w-5" aria-hidden />
             </button>
           </>
         ) : null}
       </div>
 
-      {/* Labelled thumbnails */}
+      {/* Thumbnails: 2×2 grid in the narrow mobile column, labelled row on sm+ */}
       {views.length > 1 ? (
-        <div className="flex items-center gap-2" role="tablist" aria-label="Product views">
+        <div className="grid grid-cols-2 gap-1.5 sm:flex sm:items-center sm:gap-2" role="tablist" aria-label="Product views">
           {views.map((v, i) => (
             <button
               key={v.src}
@@ -161,7 +161,7 @@ export function ProductGallery({
               aria-label={`Show ${v.label} view`}
               onClick={() => jumpTo(i)}
               className={cn(
-                "group/th relative flex-1 overflow-hidden rounded-xl border-2 transition-all duration-300",
+                "group/th relative overflow-hidden rounded-lg border-2 transition-all duration-300 sm:flex-1 sm:rounded-xl",
                 i === index
                   ? "border-gold shadow-[0_8px_20px_-10px_var(--gold)]"
                   : "border-border opacity-60 hover:opacity-100"
@@ -172,7 +172,7 @@ export function ProductGallery({
               </span>
               <span
                 className={cn(
-                  "block px-1 py-1 text-center text-[0.58rem] font-bold uppercase tracking-[0.14em]",
+                  "block px-1 py-1 text-center text-[0.55rem] font-bold uppercase tracking-[0.14em] sm:text-[0.58rem]",
                   i === index ? "bg-gold/15 text-gold" : "text-muted-foreground"
                 )}
               >
