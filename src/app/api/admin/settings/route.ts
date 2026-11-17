@@ -27,6 +27,7 @@ const settingsSchema = z.object({
   // Hubtel online checkout
   hubtelClientId: z.string().trim().max(120).optional(),
   hubtelClientSecret: z.string().trim().max(120).nullable().optional(),
+  hubtelMerchantNumber: z.string().trim().max(60).optional(),
   hubtelMerchantName: z.string().trim().max(60).optional(),
   siteUrl: z.string().trim().max(200).optional(),
   // Hubtel SMS alerts
@@ -69,6 +70,7 @@ export async function GET(req: NextRequest) {
       "shiloh_start",
       "hubtel_client_id",
       "hubtel_client_secret",
+      "hubtel_merchant_number",
       "hubtel_merchant_name",
       "site_url",
       "sms_client_id",
@@ -101,9 +103,14 @@ export async function GET(req: NextRequest) {
       hubtel: {
         clientId: map.get("hubtel_client_id") ?? "",
         secretSet: Boolean(map.get("hubtel_client_secret")),
+        merchantNumber: map.get("hubtel_merchant_number") ?? "",
         merchantName: map.get("hubtel_merchant_name") ?? "",
         siteUrl: map.get("site_url") ?? "",
-        active: Boolean(map.get("hubtel_client_id") && map.get("hubtel_client_secret")),
+        active: Boolean(
+          map.get("hubtel_client_id") &&
+            map.get("hubtel_client_secret") &&
+            map.get("hubtel_merchant_number")
+        ),
       },
       sms: {
         clientId: map.get("sms_client_id") ?? "",
@@ -159,6 +166,7 @@ export async function PATCH(req: NextRequest) {
     if (d.hubtelClientSecret !== undefined) {
       put("hubtel_client_secret", d.hubtelClientSecret ?? "");
     }
+    if (d.hubtelMerchantNumber !== undefined) put("hubtel_merchant_number", d.hubtelMerchantNumber);
     if (d.hubtelMerchantName !== undefined) put("hubtel_merchant_name", d.hubtelMerchantName);
     if (d.siteUrl !== undefined) put("site_url", d.siteUrl);
 

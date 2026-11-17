@@ -1,0 +1,800 @@
+     1→     1→"use client";
+     2→     2→
+     3→     3→import { useEffect, useState } from "react";
+     4→     4→import { useQueryClient } from "@tanstack/react-query";
+     5→     5→import {
+     6→     6→  BellRing,
+     7→     7→  KeyRound,
+     8→     8→  Loader2,
+     9→     9→  Mail,
+    10→    10→  MessageSquare,
+    11→    11→  Save,
+    12→    12→  Settings2,
+    13→    13→  ShieldCheck,
+    14→    14→  Smartphone,
+    15→    15→  Sparkles,
+    16→    16→  Wallet,
+    17→    17→} from "lucide-react";
+    18→    18→import { Button } from "@/components/ui/button";
+    19→    19→import { Input } from "@/components/ui/input";
+    20→    20→import { Label } from "@/components/ui/label";
+    21→    21→import { Switch } from "@/components/ui/switch";
+    22→    22→import { useUi } from "@/store/ui";
+    23→    23→import { fetchJson } from "@/hooks/use-store-data";
+    24→    24→import { useToast } from "@/hooks/use-toast";
+    25→    25→import { cn } from "@/lib/utils";
+    26→    26→
+    27→    27→type SettingsResponse = {
+    28→    28→  momoNumber: string;
+    29→    29→  momoName: string;
+    30→    30→  announcement: string;
+    31→    31→  shilohYear: string;
+    32→    32→  shilohTagline: string;
+    33→    33→  shilohDates: string;
+    34→    34→  shilohStart: string;
+    35→    35→  hubtel: {
+    36→    36→    clientId: string;
+    37→    37→    secretSet: boolean;
+    38→    38→    merchantName: string;
+    39→    39→    siteUrl: string;
+    40→    40→    active: boolean;
+    41→    41→  };
+    42→    42→  sms: {
+    43→    43→    clientId: string;
+    44→    44→    secretSet: boolean;
+    45→    45→    sender: string;
+    46→    46→    adminPhone: string;
+    47→    47→    adminEmail: string;
+    48→    48→    notifyCustomer: boolean;
+    49→    49→    notifyAdmin: boolean;
+    50→    50→  };
+    51→    51→  email: {
+    52→    52→    host: string;
+    53→    53→    port: string;
+    54→    54→    user: string;
+    55→    55→    passwordSet: boolean;
+    56→    56→    secure: boolean;
+    57→    57→    from: string;
+    58→    58→    to: string;
+    59→    59→    notifyAdmin: boolean;
+    60→    60→  };
+    61→    61→};
+    62→    62→
+    63→    63→function CardShell({
+    64→    64→  icon: Icon,
+    65→    65→  title,
+    66→    66→  subtitle,
+    67→    67→  children,
+    68→    68→  gold,
+    69→    69→  status,
+    70→    70→}: {
+    71→    71→  icon: React.ElementType;
+    72→    72→  title: string;
+    73→    73→  subtitle: string;
+    74→    74→  children: React.ReactNode;
+    75→    75→  gold?: boolean;
+    76→    76→  status?: { label: string; ok: boolean };
+    77→    77→}) {
+    78→    78→  return (
+    79→    79→    <section
+    80→    80→      className={cn(
+    81→    81→        "rounded-3xl p-6",
+    82→    82→        gold ? "gold-panel" : "border border-border bg-card"
+    83→    83→      )}
+    84→    84→    >
+    85→    85→      <div className="flex items-center gap-3">
+    86→    86→        <span
+    87→    87→          className={cn(
+    88→    88→            "flex h-10 w-10 items-center justify-center rounded-xl",
+    89→    89→            gold ? "bg-gold/15 text-gold" : "bg-secondary text-muted-foreground"
+    90→    90→          )}
+    91→    91→        >
+    92→    92→          <Icon className="h-5 w-5" aria-hidden />
+    93→    93→        </span>
+    94→    94→        <div className="min-w-0 flex-1">
+    95→    95→          <h2 className="font-display text-lg font-bold leading-tight">{title}</h2>
+    96→    96→          <p className="text-xs text-muted-foreground">{subtitle}</p>
+    97→    97→        </div>
+    98→    98→        {status ? (
+    99→    99→          <span
+   100→   100→            className={cn(
+   101→   101→              "shrink-0 rounded-full px-3 py-1.5 text-[0.62rem] font-bold uppercase tracking-wider",
+   102→   102→              status.ok
+   103→   103→                ? "bg-emerald-500/15 text-emerald-400"
+   104→   104→                : "bg-secondary text-muted-foreground"
+   105→   105→            )}
+   106→   106→          >
+   107→   107→            {status.label}
+   108→   108→          </span>
+   109→   109→        ) : null}
+   110→   110→      </div>
+   111→   111→      <div className="mt-5 grid gap-4">{children}</div>
+   112→   112→    </section>
+   113→   113→  );
+   114→   114→}
+   115→   115→
+   116→   116→function Field({
+   117→   117→  id,
+   118→   118→  label,
+   119→   119→  hint,
+   120→   120→  children,
+   121→   121→}: {
+   122→   122→  id: string;
+   123→   123→  label: string;
+   124→   124→  hint?: string;
+   125→   125→  children: React.ReactNode;
+   126→   126→}) {
+   127→   127→  return (
+   128→   128→    <div className="grid gap-2">
+   129→   129→      <Label htmlFor={id} className="text-sm font-semibold">
+   130→   130→        {label}
+   131→   131→      </Label>
+   132→   132→      {children}
+   133→   133→      {hint ? <p className="text-xs leading-relaxed text-muted-foreground">{hint}</p> : null}
+   134→   134→    </div>
+   135→   135→  );
+   136→   136→}
+   137→   137→
+   138→   138→const inputCls = "h-12 rounded-xl border-border bg-background/60 text-base";
+   139→   139→
+   140→   140→export function AdminSettings({ token }: { token: string }) {
+   141→   141→  const queryClient = useQueryClient();
+   142→   142→  const { toast } = useToast();
+   143→   143→
+   144→   144→  const [loading, setLoading] = useState(true);
+   145→   145→  const [savingKey, setSavingKey] = useState<string | null>(null);
+   146→   146→
+   147→   147→  // Branding / store
+   148→   148→  const [momoNumber, setMomoNumber] = useState("");
+   149→   149→  const [momoName, setMomoName] = useState("");
+   150→   150→  const [announcement, setAnnouncement] = useState("");
+   151→   151→  const [shilohYear, setShilohYear] = useState("");
+   152→   152→  const [shilohTagline, setShilohTagline] = useState("");
+   153→   153→  const [shilohDates, setShilohDates] = useState("");
+   154→   154→  const [shilohStart, setShilohStart] = useState("");
+   155→   155→  const [newPassword, setNewPassword] = useState("");
+   156→   156→  const [confirmPassword, setConfirmPassword] = useState("");
+   157→   157→
+   158→   158→  // Hubtel payment
+   159→   159→  const [hubtelClientId, setHubtelClientId] = useState("");
+   160→   160→  const [hubtelSecret, setHubtelSecret] = useState("");
+   161→   161→  const [hubtelSecretSet, setHubtelSecretSet] = useState(false);
+   162→   162→  const [hubtelMerchant, setHubtelMerchant] = useState("");
+   163→   163→  const [siteUrl, setSiteUrl] = useState("");
+   164→   164→  const [hubtelActive, setHubtelActive] = useState(false);
+   165→   165→
+   166→   166→  // SMS
+   167→   167→  const [smsClientId, setSmsClientId] = useState("");
+   168→   168→  const [smsSecret, setSmsSecret] = useState("");
+   169→   169→  const [smsSecretSet, setSmsSecretSet] = useState(false);
+   170→   170→  const [smsSender, setSmsSender] = useState("");
+   171→   171→  const [adminPhone, setAdminPhone] = useState("");
+   172→   172→  const [adminEmail, setAdminEmail] = useState("");
+   173→   173→  const [notifyCustomerSms, setNotifyCustomerSms] = useState(true);
+   174→   174→  const [notifyAdminSms, setNotifyAdminSms] = useState(true);
+   175→   175→
+   176→   176→  // Email
+   177→   177→  const [smtpHost, setSmtpHost] = useState("");
+   178→   178→  const [smtpPort, setSmtpPort] = useState("587");
+   179→   179→  const [smtpUser, setSmtpUser] = useState("");
+   180→   180→  const [smtpPass, setSmtpPass] = useState("");
+   181→   181→  const [smtpPassSet, setSmtpPassSet] = useState(false);
+   182→   182→  const [smtpSecure, setSmtpSecure] = useState(false);
+   183→   183→  const [smtpFrom, setSmtpFrom] = useState("");
+   184→   184→  const [smtpTo, setSmtpTo] = useState("");
+   185→   185→  const [notifyAdminEmail, setNotifyAdminEmail] = useState(true);
+   186→   186→
+   187→   187→  useEffect(() => {
+   188→   188→    let cancelled = false;
+   189→   189→    fetchJson<SettingsResponse>("/api/admin/settings", {
+   190→   190→      headers: { "x-admin-token": token },
+   191→   191→    })
+   192→   192→      .then((res) => {
+   193→   193→        if (cancelled) return;
+   194→   194→        setMomoNumber(res.momoNumber);
+   195→   195→        setMomoName(res.momoName);
+   196→   196→        setAnnouncement(res.announcement);
+   197→   197→        setShilohYear(res.shilohYear);
+   198→   198→        setShilohTagline(res.shilohTagline);
+   199→   199→        setShilohDates(res.shilohDates);
+   200→   200→        setShilohStart(res.shilohStart);
+   201→   201→        setHubtelClientId(res.hubtel.clientId);
+   202→   202→        setHubtelSecretSet(res.hubtel.secretSet);
+   203→   203→        setHubtelMerchant(res.hubtel.merchantName);
+   204→   204→        setSiteUrl(res.hubtel.siteUrl);
+   205→   205→        setHubtelActive(res.hubtel.active);
+   206→   206→        setSmsClientId(res.sms.clientId);
+   207→   207→        setSmsSecretSet(res.sms.secretSet);
+   208→   208→        setSmsSender(res.sms.sender);
+   209→   209→        setAdminPhone(res.sms.adminPhone);
+   210→   210→        setAdminEmail(res.sms.adminEmail);
+   211→   211→        setNotifyCustomerSms(res.sms.notifyCustomer);
+   212→   212→        setNotifyAdminSms(res.sms.notifyAdmin);
+   213→   213→        setSmtpHost(res.email.host);
+   214→   214→        setSmtpPort(res.email.port || "587");
+   215→   215→        setSmtpUser(res.email.user);
+   216→   216→        setSmtpPassSet(res.email.passwordSet);
+   217→   217→        setSmtpSecure(res.email.secure);
+   218→   218→        setSmtpFrom(res.email.from);
+   219→   219→        setSmtpTo(res.email.to);
+   220→   220→        setNotifyAdminEmail(res.email.notifyAdmin);
+   221→   221→      })
+   222→   222→      .catch((err) => {
+   223→   223→        toast({
+   224→   224→          title: "Could not load settings",
+   225→   225→          description: err instanceof Error ? err.message : undefined,
+   226→   226→          variant: "destructive",
+   227→   227→        });
+   228→   228→      })
+   229→   229→      .finally(() => !cancelled && setLoading(false));
+   230→   230→    return () => {
+   231→   231→      cancelled = true;
+   232→   232→    };
+   233→   233→  }, [token]);
+   234→   234→
+   235→   235→  const save = async (key: string, body: Record<string, unknown>) => {
+   236→   236→    setSavingKey(key);
+   237→   237→    try {
+   238→   238→      await fetchJson("/api/admin/settings", {
+   239→   239→        method: "PATCH",
+   240→   240→        headers: { "Content-Type": "application/json", "x-admin-token": token },
+   241→   241→        body: JSON.stringify(body),
+   242→   242→      });
+   243→   243→      await queryClient.invalidateQueries({ queryKey: ["store-info"] });
+   244→   244→      // Refresh so the "configured" pills update immediately.
+   245→   245→      const res = await fetchJson<SettingsResponse>("/api/admin/settings", {
+   246→   246→        headers: { "x-admin-token": token },
+   247→   247→      });
+   248→   248→      setHubtelSecretSet(res.hubtel.secretSet);
+   249→   249→      setHubtelActive(res.hubtel.active);
+   250→   250→      setSmsSecretSet(res.sms.secretSet);
+   251→   251→      setSmtpPassSet(res.email.passwordSet);
+   252→   252→      setHubtelSecret("");
+   253→   253→      setSmsSecret("");
+   254→   254→      setSmtpPass("");
+   255→   255→      toast({ title: "Settings saved" });
+   256→   256→    } catch (err) {
+   257→   257→      toast({
+   258→   258→        title: "Save failed",
+   259→   259→        description: err instanceof Error ? err.message : undefined,
+   260→   260→        variant: "destructive",
+   261→   261→      });
+   262→   262→    } finally {
+   263→   263→      setSavingKey(null);
+   264→   264→    }
+   265→   265→  };
+   266→   266→
+   267→   267→  if (loading) {
+   268→   268→    return (
+   269→   269→      <div className="flex items-center justify-center gap-3 rounded-2xl border border-dashed border-border py-16 text-sm text-muted-foreground">
+   270→   270→        <Loader2 className="h-5 w-5 animate-spin" aria-hidden /> Loading settings…
+   271→   271→      </div>
+   272→   272→    );
+   273→   273→  }
+   274→   274→
+   275→   275→  return (
+   276→   276→    <div className="grid gap-5 lg:grid-cols-2">
+   277→   277→      {/* ---------------- Hubtel payment ---------------- */}
+   278→   278→      <CardShell
+   279→   279→        icon={ShieldCheck}
+   280→   280→        title="Hubtel Online Payment"
+   281→   281→        subtitle="Activate one-tap checkout — Hubtel collects MoMo, wallets & cards"
+   282→   282→        gold
+   283→   283→        status={{ label: hubtelActive ? "Active" : "Not configured", ok: hubtelActive }}
+   284→   284→      >
+   285→   285→        <Field
+   286→   286→          id="hubtel-client-id"
+   287→   287→          label="Hubtel API Key (Client ID)"
+   288→   288→          hint="From your Hubtel account → Settings → API Keys. Clear this field to switch the store back to manual MoMo instructions."
+   289→   289→        >
+   290→   290→          <Input
+   291→   291→            id="hubtel-client-id"
+   292→   292→            value={hubtelClientId}
+   293→   293→            onChange={(e) => setHubtelClientId(e.target.value)}
+   294→   294→            placeholder="e.g. hkPq2xyz…"
+   295→   295→            className={`${inputCls} font-mono text-sm`}
+   296→   296→            maxLength={120}
+   297→   297→          />
+   298→   298→        </Field>
+   299→   299→        <Field
+   300→   300→          id="hubtel-secret"
+   301→   301→          label="Hubtel API Secret (Password)"
+   302→   302→          hint={
+   303→   303→            hubtelSecretSet
+   304→   304→              ? "A secret is configured. Leave blank to keep it; type a new one to replace it."
+   305→   305→              : "Paste the API secret that pairs with the API key above."
+   306→   306→          }
+   307→   307→        >
+   308→   308→          <Input
+   309→   309→            id="hubtel-secret"
+   310→   310→            type="password"
+   311→   311→            value={hubtelSecret}
+   312→   312→            onChange={(e) => setHubtelSecret(e.target.value)}
+   313→   313→            placeholder={hubtelSecretSet ? "••••••••••  (configured)" : "e.g. 9f8e7d6c…"}
+   314→   314→            className={`${inputCls} font-mono text-sm`}
+   315→   315→            maxLength={120}
+   316→   316→            autoComplete="new-password"
+   317→   317→          />
+   318→   318→        </Field>
+   319→   319→        <div className="grid grid-cols-2 gap-4">
+   320→   320→          <Field id="hubtel-merchant" label="Merchant name">
+   321→   321→            <Input
+   322→   322→              id="hubtel-merchant"
+   323→   323→              value={hubtelMerchant}
+   324→   324→              onChange={(e) => setHubtelMerchant(e.target.value)}
+   325→   325→              placeholder="Shiloh Merch GH"
+   326→   326→              className={inputCls}
+   327→   327→              maxLength={60}
+   328→   328→            />
+   329→   329→          </Field>
+   330→   330→          <Field id="site-url" label="Public site URL" hint="Used for Hubtel callbacks.">
+   331→   331→            <Input
+   332→   332→              id="site-url"
+   333→   333→              value={siteUrl}
+   334→   334→              onChange={(e) => setSiteUrl(e.target.value)}
+   335→   335→              placeholder="https://shilohmerch.com"
+   336→   336→              className={`${inputCls} text-sm`}
+   337→   337→              maxLength={200}
+   338→   338→            />
+   339→   339→          </Field>
+   340→   340→        </div>
+   341→   341→        <Button
+   342→   342→          onClick={() =>
+   343→   343→            save("hubtel", {
+   344→   344→              hubtelClientId: hubtelClientId.trim(),
+   345→   345→              hubtelClientSecret: hubtelSecret.trim() ? hubtelSecret.trim() : undefined,
+   346→   346→              hubtelMerchantName: hubtelMerchant.trim(),
+   347→   347→              siteUrl: siteUrl.trim(),
+   348→   348→            })
+   349→   349→          }
+   350→   350→          disabled={savingKey !== null}
+   351→   351→          className="h-12 w-full rounded-full bg-gradient-to-r from-gold to-gold-deep font-bold text-primary-foreground hover:opacity-95"
+   352→   352→        >
+   353→   353→          {savingKey === "hubtel" ? (
+   354→   354→            <Loader2 className="mr-2 h-4.5 w-4.5 animate-spin" aria-hidden />
+   355→   355→          ) : (
+   356→   356→            <Save className="mr-2 h-4.5 w-4.5" aria-hidden />
+   357→   357→          )}
+   358→   358→          {hubtelActive ? "Save payment settings" : "Activate online payment"}
+   359→   359→        </Button>
+   360→   360→        <p className="text-xs leading-relaxed text-muted-foreground">
+   361→   361→          When active, customers are taken straight to Hubtel&apos;s secure checkout after placing an
+   362→   362→          order. Payment status flows back automatically and paid orders move to{" "}
+   363→   363→          <span className="font-semibold text-foreground">Under review</span>.
+   364→   364→        </p>
+   365→   365→      </CardShell>
+   366→   366→
+   367→   367→      {/* ---------------- SMS alerts ---------------- */}
+   368→   368→      <CardShell
+   369→   369→        icon={MessageSquare}
+   370→   370→        title="SMS Alerts (Hubtel)"
+   371→   371→        subtitle="Order & payment confirmations to the customer and your phone"
+   372→   372→        status={{ label: smsSecretSet ? "Configured" : "Not configured", ok: smsSecretSet }}
+   373→   373→      >
+   374→   374→        <div className="grid grid-cols-2 gap-4">
+   375→   375→          <Field id="sms-client-id" label="SMS API Key">
+   376→   376→            <Input
+   377→   377→              id="sms-client-id"
+   378→   378→              value={smsClientId}
+   379→   379→              onChange={(e) => setSmsClientId(e.target.value)}
+   380→   380→              placeholder="e.g. rQ3vNoP…"
+   381→   381→              className={`${inputCls} font-mono text-sm`}
+   382→   382→              maxLength={120}
+   383→   383→            />
+   384→   384→          </Field>
+   385→   385→          <Field id="sms-secret" label="SMS API Secret">
+   386→   386→            <Input
+   387→   387→              id="sms-secret"
+   388→   388→              type="password"
+   389→   389→              value={smsSecret}
+   390→   390→              onChange={(e) => setSmsSecret(e.target.value)}
+   391→   391→              placeholder={smsSecretSet ? "••••••••••  (configured)" : "API secret / password"}
+   392→   392→              className={`${inputCls} font-mono text-sm`}
+   393→   393→              maxLength={120}
+   394→   394→              autoComplete="new-password"
+   395→   395→            />
+   396→   396→          </Field>
+   397→   397→        </div>
+   398→   398→        <Field
+   399→   399→          id="sms-sender"
+   400→   400→          label="Sender ID"
+   401→   401→          hint="The name recipients see — must be registered on your Hubtel account."
+   402→   402→        >
+   403→   403→          <Input
+   404→   404→            id="sms-sender"
+   405→   405→            value={smsSender}
+   406→   406→            onChange={(e) => setSmsSender(e.target.value)}
+   407→   407→            placeholder="Shiloh Merch"
+   408→   408→            className={inputCls}
+   409→   409→            maxLength={20}
+   410→   410→          />
+   411→   411→        </Field>
+   412→   412→        <div className="grid grid-cols-2 gap-4">
+   413→   413→          <Field id="admin-phone" label="Admin phone (alert number)">
+   414→   414→            <Input
+   415→   415→              id="admin-phone"
+   416→   416→              value={adminPhone}
+   417→   417→              onChange={(e) => setAdminPhone(e.target.value)}
+   418→   418→              placeholder="024 123 4567"
+   419→   419→              className={`${inputCls} font-mono text-base`}
+   420→   420→              maxLength={20}
+   421→   421→            />
+   422→   422→          </Field>
+   423→   423→          <Field id="admin-email" label="Admin email">
+   424→   424→            <Input
+   425→   425→              id="admin-email"
+   426→   426→              type="email"
+   427→   427→              value={adminEmail}
+   428→   428→              onChange={(e) => setAdminEmail(e.target.value)}
+   429→   429→              placeholder="orders@shilohmerch.com"
+   430→   430→              className={`${inputCls} text-sm`}
+   431→   431→              maxLength={120}
+   432→   432→            />
+   433→   433→          </Field>
+   434→   434→        </div>
+   435→   435→        <div className="grid gap-3 rounded-2xl border border-border bg-background/60 p-4">
+   436→   436→          <div className="flex items-center justify-between gap-3">
+   437→   437→            <Label htmlFor="notify-customer-sms" className="text-sm font-semibold">
+   438→   438→              SMS the customer on order &amp; payment
+   439→   439→            </Label>
+   440→   440→            <Switch
+   441→   441→              id="notify-customer-sms"
+   442→   442→              checked={notifyCustomerSms}
+   443→   443→              onCheckedChange={setNotifyCustomerSms}
+   444→   444→            />
+   445→   445→          </div>
+   446→   446→          <div className="flex items-center justify-between gap-3">
+   447→   447→            <Label htmlFor="notify-admin-sms" className="text-sm font-semibold">
+   448→   448→              SMS the admin phone on order &amp; payment
+   449→   449→            </Label>
+   450→   450→            <Switch
+   451→   451→              id="notify-admin-sms"
+   452→   452→              checked={notifyAdminSms}
+   453→   453→              onCheckedChange={setNotifyAdminSms}
+   454→   454→            />
+   455→   455→          </div>
+   456→   456→        </div>
+   457→   457→        <Button
+   458→   458→          onClick={() =>
+   459→   459→            save("sms", {
+   460→   460→              smsClientId: smsClientId.trim(),
+   461→   461→              smsClientSecret: smsSecret.trim() ? smsSecret.trim() : undefined,
+   462→   462→              smsSender: smsSender.trim(),
+   463→   463→              adminPhone: adminPhone.trim(),
+   464→   464→              adminEmail: adminEmail.trim(),
+   465→   465→              notifyCustomerSms,
+   466→   466→              notifyAdminSms,
+   467→   467→            })
+   468→   468→          }
+   469→   469→          disabled={savingKey !== null}
+   470→   470→          className="h-12 w-full rounded-full font-bold"
+   471→   471→          variant="outline"
+   472→   472→        >
+   473→   473→          {savingKey === "sms" ? (
+   474→   474→            <Loader2 className="mr-2 h-4.5 w-4.5 animate-spin" aria-hidden />
+   475→   475→          ) : (
+   476→   476→            <BellRing className="mr-2 h-4.5 w-4.5" aria-hidden />
+   477→   477→          )}
+   478→   478→          Save SMS settings
+   479→   479→        </Button>
+   480→   480→      </CardShell>
+   481→   481→
+   482→   482→      {/* ---------------- Email alerts ---------------- */}
+   483→   483→      <CardShell
+   484→   484→        icon={Mail}
+   485→   485→        title="Email Alerts (SMTP)"
+   486→   486→        subtitle="Every new order & payment lands in your inbox"
+   487→   487→        status={{ label: smtpPassSet ? "Configured" : "Not configured", ok: smtpPassSet }}
+   488→   488→      >
+   489→   489→        <div className="grid grid-cols-[1fr_120px] gap-4">
+   490→   490→          <Field id="smtp-host" label="SMTP host">
+   491→   491→            <Input
+   492→   492→              id="smtp-host"
+   493→   493→              value={smtpHost}
+   494→   494→              onChange={(e) => setSmtpHost(e.target.value)}
+   495→   495→              placeholder="smtp.gmail.com"
+   496→   496→              className={`${inputCls} text-sm`}
+   497→   497→              maxLength={120}
+   498→   498→            />
+   499→   499→          </Field>
+   500→   500→          <Field id="smtp-port" label="Port">
+   501→   501→            <Input
+   502→   502→              id="smtp-port"
+   503→   503→              value={smtpPort}
+   504→   504→              onChange={(e) => setSmtpPort(e.target.value)}
+   505→   505→              placeholder="587"
+   506→   506→              inputMode="numeric"
+   507→   507→              className={`${inputCls} font-mono text-base`}
+   508→   508→              maxLength={6}
+   509→   509→            />
+   510→   510→          </Field>
+   511→   511→        </div>
+   512→   512→        <div className="grid grid-cols-2 gap-4">
+   513→   513→          <Field id="smtp-user" label="SMTP username">
+   514→   514→            <Input
+   515→   515→              id="smtp-user"
+   516→   516→              value={smtpUser}
+   517→   517→              onChange={(e) => setSmtpUser(e.target.value)}
+   518→   518→              placeholder="orders@shilohmerch.com"
+   519→   519→              className={`${inputCls} text-sm`}
+   520→   520→              maxLength={120}
+   521→   521→              autoComplete="off"
+   522→   522→            />
+   523→   523→          </Field>
+   524→   524→          <Field id="smtp-pass" label="SMTP password / app password">
+   525→   525→            <Input
+   526→   526→              id="smtp-pass"
+   527→   527→              type="password"
+   528→   528→              value={smtpPass}
+   529→   529→              onChange={(e) => setSmtpPass(e.target.value)}
+   530→   530→              placeholder={smtpPassSet ? "••••••••••  (configured)" : "Gmail: use an app password"}
+   531→   531→              className={`${inputCls} text-sm`}
+   532→   532→              maxLength={200}
+   533→   533→              autoComplete="new-password"
+   534→   534→            />
+   535→   535→          </Field>
+   536→   536→        </div>
+   537→   537→        <div className="grid grid-cols-2 gap-4">
+   538→   538→          <Field id="smtp-from" label="From address">
+   539→   539→            <Input
+   540→   540→              id="smtp-from"
+   541→   541→              type="email"
+   542→   542→              value={smtpFrom}
+   543→   543→              onChange={(e) => setSmtpFrom(e.target.value)}
+   544→   544→              placeholder="shiloh.merch@gmail.com"
+   545→   545→              className={`${inputCls} text-sm`}
+   546→   546→              maxLength={120}
+   547→   547→            />
+   548→   548→          </Field>
+   549→   549→          <Field id="smtp-to" label="Deliver alerts to">
+   550→   550→            <Input
+   551→   551→              id="smtp-to"
+   552→   552→              type="email"
+   553→   553→              value={smtpTo}
+   554→   554→              onChange={(e) => setSmtpTo(e.target.value)}
+   555→   555→              placeholder="orders@shilohmerch.com"
+   556→   556→              className={`${inputCls} text-sm`}
+   557→   557→              maxLength={120}
+   558→   558→            />
+   559→   559→          </Field>
+   560→   560→        </div>
+   561→   561→        <div className="grid gap-3 rounded-2xl border border-border bg-background/60 p-4">
+   562→   562→          <div className="flex items-center justify-between gap-3">
+   563→   563→            <Label htmlFor="smtp-secure" className="text-sm font-semibold">
+   564→   564→              Use TLS-on-connect (port 465)
+   565→   565→            </Label>
+   566→   566→            <Switch id="smtp-secure" checked={smtpSecure} onCheckedChange={setSmtpSecure} />
+   567→   567→          </div>
+   568→   568→          <div className="flex items-center justify-between gap-3">
+   569→   569→            <Label htmlFor="notify-admin-email" className="text-sm font-semibold">
+   570→   570→              Email me on every order &amp; payment
+   571→   571→            </Label>
+   572→   572→            <Switch
+   573→   573→              id="notify-admin-email"
+   574→   574→              checked={notifyAdminEmail}
+   575→   575→              onCheckedChange={setNotifyAdminEmail}
+   576→   576→            />
+   577→   577→          </div>
+   578→   578→        </div>
+   579→   579→        <Button
+   580→   580→          onClick={() =>
+   581→   581→            save("email", {
+   582→   582→              smtpHost: smtpHost.trim(),
+   583→   583→              smtpPort: smtpPort.trim(),
+   584→   584→              smtpUser: smtpUser.trim(),
+   585→   585→              smtpPass: smtpPass.trim() ? smtpPass.trim() : undefined,
+   586→   586→              smtpSecure,
+   587→   587→              smtpFromEmail: smtpFrom.trim(),
+   588→   588→              smtpToEmail: smtpTo.trim(),
+   589→   589→              notifyAdminEmail,
+   590→   590→            })
+   591→   591→          }
+   592→   592→          disabled={savingKey !== null}
+   593→   593→          className="h-12 w-full rounded-full font-bold"
+   594→   594→          variant="outline"
+   595→   595→        >
+   596→   596→          {savingKey === "email" ? (
+   597→   597→            <Loader2 className="mr-2 h-4.5 w-4.5 animate-spin" aria-hidden />
+   598→   598→          ) : (
+   599→   599→            <Mail className="mr-2 h-4.5 w-4.5" aria-hidden />
+   600→   600→          )}
+   601→   601→          Save email settings
+   602→   602→        </Button>
+   603→   603→        <p className="flex items-start gap-2 text-xs leading-relaxed text-muted-foreground">
+   604→   604→          <Smartphone className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden />
+   605→   605→          Tip: send a test SMS / email from the Alerts tab after saving to confirm delivery.
+   606→   606→        </p>
+   607→   607→      </CardShell>
+   608→   608→
+   609→   609→      {/* ---------------- Branding ---------------- */}
+   610→   610→      <CardShell
+   611→   611→        icon={Sparkles}
+   612→   612→        title="Shiloh Branding"
+   613→   613→        subtitle="Drives the headline, dates and countdown — update every year"
+   614→   614→      >
+   615→   615→        <div className="grid grid-cols-2 gap-4">
+   616→   616→          <Field id="shiloh-year" label="Year">
+   617→   617→            <Input
+   618→   618→              id="shiloh-year"
+   619→   619→              value={shilohYear}
+   620→   620→              onChange={(e) => setShilohYear(e.target.value)}
+   621→   621→              placeholder="2026"
+   622→   622→              inputMode="numeric"
+   623→   623→              maxLength={4}
+   624→   624→              className={`${inputCls} text-base`}
+   625→   625→            />
+   626→   626→          </Field>
+   627→   627→          <Field id="shiloh-start" label="Starts on">
+   628→   628→            <Input
+   629→   629→              id="shiloh-start"
+   630→   630→              value={shilohStart}
+   631→   631→              onChange={(e) => setShilohStart(e.target.value)}
+   632→   632→              placeholder="2026-12-08"
+   633→   633→              className={`${inputCls} font-mono text-base`}
+   634→   634→            />
+   635→   635→          </Field>
+   636→   636→        </div>
+   637→   637→        <Field id="shiloh-tagline" label="Tagline (theme)">
+   638→   638→          <Input
+   639→   639→            id="shiloh-tagline"
+   640→   640→            value={shilohTagline}
+   641→   641→            onChange={(e) => setShilohTagline(e.target.value)}
+   642→   642→            placeholder="Far Above"
+   643→   643→            className={`${inputCls} text-base`}
+   644→   644→            maxLength={60}
+   645→   645→          />
+   646→   646→        </Field>
+   647→   647→        <Field id="shiloh-dates" label="Dates label">
+   648→   648→          <Input
+   649→   649→            id="shiloh-dates"
+   650→   650→            value={shilohDates}
+   651→   651→            onChange={(e) => setShilohDates(e.target.value)}
+   652→   652→            placeholder="December 8–13"
+   653→   653→            className={`${inputCls} text-base`}
+   654→   654→            maxLength={60}
+   655→   655→          />
+   656→   656→        </Field>
+   657→   657→        <Button
+   658→   658→          onClick={() => {
+   659→   659→            if (!/^\d{4}$/.test(shilohYear.trim())) {
+   660→   660→              toast({ title: "Invalid year", description: "Enter a 4-digit year, e.g. 2026.", variant: "destructive" });
+   661→   661→              return;
+   662→   662→            }
+   663→   663→            if (!/^\d{4}-\d{2}-\d{2}$/.test(shilohStart.trim())) {
+   664→   664→              toast({ title: "Invalid start date", description: "Use YYYY-MM-DD, e.g. 2026-12-08.", variant: "destructive" });
+   665→   665→              return;
+   666→   666→            }
+   667→   667→            save("branding", {
+   668→   668→              shilohYear: shilohYear.trim(),
+   669→   669→              shilohTagline: shilohTagline.trim(),
+   670→   670→              shilohDates: shilohDates.trim(),
+   671→   671→              shilohStart: shilohStart.trim(),
+   672→   672→            });
+   673→   673→          }}
+   674→   674→          disabled={savingKey !== null}
+   675→   675→          className="h-12 w-full rounded-full bg-gradient-to-r from-gold to-gold-deep font-bold text-primary-foreground hover:opacity-95"
+   676→   676→        >
+   677→   677→          {savingKey === "branding" ? (
+   678→   678→            <Loader2 className="mr-2 h-4.5 w-4.5 animate-spin" aria-hidden />
+   679→   679→          ) : (
+   680→   680→            <Save className="mr-2 h-4.5 w-4.5" aria-hidden />
+   681→   681→          )}
+   682→   682→          Save event branding
+   683→   683→        </Button>
+   684→   684→      </CardShell>
+   685→   685→
+   686→   686→      {/* ---------------- Storefront / MoMo ---------------- */}
+   687→   687→      <CardShell
+   688→   688→        icon={Wallet}
+   689→   689→        title="Payment & Storefront"
+   690→   690→        subtitle="Shown to customers when they pay manually via MoMo"
+   691→   691→        status={{ label: "Manual MoMo", ok: true }}
+   692→   692→      >
+   693→   693→        <Field id="momo-number" label="MTN MoMo number (receives manual payments)">
+   694→   694→          <Input
+   695→   695→            id="momo-number"
+   696→   696→            value={momoNumber}
+   697→   697→            onChange={(e) => setMomoNumber(e.target.value)}
+   698→   698→            placeholder="055 123 4567"
+   699→   699→            className={`${inputCls} font-mono text-base`}
+   700→   700→            maxLength={25}
+   701→   701→          />
+   702→   702→        </Field>
+   703→   703→        <Field id="momo-name" label="MoMo account name">
+   704→   704→          <Input
+   705→   705→            id="momo-name"
+   706→   706→            value={momoName}
+   707→   707→            onChange={(e) => setMomoName(e.target.value)}
+   708→   708→            placeholder="Shiloh Merch GH"
+   709→   709→            className={inputCls}
+   710→   710→            maxLength={60}
+   711→   711→          />
+   712→   712→        </Field>
+   713→   713→        <Field id="announcement" label="Announcement bar text" hint="Leave empty to hide the top bar.">
+   714→   714→          <Input
+   715→   715→            id="announcement"
+   716→   716→            value={announcement}
+   717→   717→            onChange={(e) => setAnnouncement(e.target.value)}
+   718→   718→            placeholder="Order early — delivery before Dec 8"
+   719→   719→            className={inputCls}
+   720→   720→            maxLength={160}
+   721→   721→          />
+   722→   722→        </Field>
+   723→   723→        <Button
+   724→   724→          onClick={() =>
+   725→   725→            save("store", {
+   726→   726→              momoNumber: momoNumber.trim(),
+   727→   727→              momoName: momoName.trim(),
+   728→   728→              announcement: announcement.trim(),
+   729→   729→            })
+   730→   730→          }
+   731→   731→          disabled={savingKey !== null}
+   732→   732→          className="h-12 w-full rounded-full bg-gradient-to-r from-gold to-gold-deep font-bold text-primary-foreground hover:opacity-95"
+   733→   733→        >
+   734→   734→          {savingKey === "store" ? (
+   735→   735→            <Loader2 className="mr-2 h-4.5 w-4.5 animate-spin" aria-hidden />
+   736→   736→          ) : (
+   737→   737→            <Save className="mr-2 h-4.5 w-4.5" aria-hidden />
+   738→   738→          )}
+   739→   739→          Save store settings
+   740→   740→        </Button>
+   741→   741→      </CardShell>
+   742→   742→
+   743→   743→      {/* ---------------- Password ---------------- */}
+   744→   744→      <CardShell
+   745→   745→        icon={KeyRound}
+   746→   746→        title="Back office password"
+   747→   747→        subtitle="Changing it signs out every other device"
+   748→   748→      >
+   749→   749→        <Field id="new-password" label="New password">
+   750→   750→          <Input
+   751→   751→            id="new-password"
+   752→   752→            type="password"
+   753→   753→            value={newPassword}
+   754→   754→            onChange={(e) => setNewPassword(e.target.value)}
+   755→   755→            placeholder="At least 6 characters"
+   756→   756→            className={inputCls}
+   757→   757→            autoComplete="new-password"
+   758→   758→          />
+   759→   759→        </Field>
+   760→   760→        <Field id="confirm-password" label="Confirm new password">
+   761→   761→          <Input
+   762→   762→            id="confirm-password"
+   763→   763→            type="password"
+   764→   764→            value={confirmPassword}
+   765→   765→            onChange={(e) => setConfirmPassword(e.target.value)}
+   766→   766→            placeholder="Repeat the new password"
+   767→   767→            className={inputCls}
+   768→   768→            autoComplete="new-password"
+   769→   769→          />
+   770→   770→        </Field>
+   771→   771→        <Button
+   772→   772→          onClick={async () => {
+   773→   773→            if (newPassword.length < 6) {
+   774→   774→              toast({ title: "Password too short", description: "Use at least 6 characters.", variant: "destructive" });
+   775→   775→              return;
+   776→   776→            }
+   777→   777→            if (newPassword !== confirmPassword) {
+   778→   778→              toast({ title: "Passwords do not match", variant: "destructive" });
+   779→   779→              return;
+   780→   780→            }
+   781→   781→            await save("password", { newPassword });
+   782→   782→            setNewPassword("");
+   783→   783→            setConfirmPassword("");
+   784→   784→          }}
+   785→   785→          disabled={savingKey !== null || !newPassword}
+   786→   786→          variant="outline"
+   787→   787→          className="h-12 w-full rounded-full border-border font-semibold hover:border-gold/40 hover:text-gold"
+   788→   788→        >
+   789→   789→          {savingKey === "password" ? (
+   790→   790→            <Loader2 className="mr-2 h-4.5 w-4.5 animate-spin" aria-hidden />
+   791→   791→          ) : (
+   792→   792→            <Settings2 className="mr-2 h-4.5 w-4.5" aria-hidden />
+   793→   793→          )}
+   794→   794→          Change password
+   795→   795→        </Button>
+   796→   796→      </CardShell>
+   797→   797→    </div>
+   798→   798→  );
+   799→   799→}
+   800→   800→

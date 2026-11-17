@@ -8,6 +8,7 @@ import {
   Loader2,
   Mail,
   MessageSquare,
+  PlugZap,
   Save,
   Settings2,
   ShieldCheck,
@@ -35,6 +36,7 @@ type SettingsResponse = {
   hubtel: {
     clientId: string;
     secretSet: boolean;
+    merchantNumber: string;
     merchantName: string;
     siteUrl: string;
     active: boolean;
@@ -159,9 +161,11 @@ export function AdminSettings({ token }: { token: string }) {
   const [hubtelClientId, setHubtelClientId] = useState("");
   const [hubtelSecret, setHubtelSecret] = useState("");
   const [hubtelSecretSet, setHubtelSecretSet] = useState(false);
+  const [hubtelMerchantNumber, setHubtelMerchantNumber] = useState("");
   const [hubtelMerchant, setHubtelMerchant] = useState("");
   const [siteUrl, setSiteUrl] = useState("");
   const [hubtelActive, setHubtelActive] = useState(false);
+  const [testingHubtel, setTestingHubtel] = useState(false);
 
   // SMS
   const [smsClientId, setSmsClientId] = useState("");
@@ -200,6 +204,7 @@ export function AdminSettings({ token }: { token: string }) {
         setShilohStart(res.shilohStart);
         setHubtelClientId(res.hubtel.clientId);
         setHubtelSecretSet(res.hubtel.secretSet);
+        setHubtelMerchantNumber(res.hubtel.merchantNumber);
         setHubtelMerchant(res.hubtel.merchantName);
         setSiteUrl(res.hubtel.siteUrl);
         setHubtelActive(res.hubtel.active);
@@ -264,6 +269,39 @@ export function AdminSettings({ token }: { token: string }) {
     }
   };
 
+  const testHubtel = async () => {
+    setTestingHubtel(true);
+    try {
+      const res = await fetch("/api/admin/settings/hubtel-test", {
+        method: "POST",
+        headers: { "x-admin-token": token },
+      });
+      const data = (await res.json().catch(() => ({}))) as {
+        success?: boolean;
+        message?: string;
+        error?: string;
+        hint?: string;
+      };
+      if (res.ok && data.success) {
+        toast({ title: "Hubtel connected", description: data.message });
+      } else {
+        toast({
+          title: "Hubtel test failed",
+          description: [data.error, data.hint].filter(Boolean).join(" "),
+          variant: "destructive",
+        });
+      }
+    } catch {
+      toast({
+        title: "Hubtel test failed",
+        description: "Could not reach the server — please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setTestingHubtel(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center gap-3 rounded-2xl border border-dashed border-border py-16 text-sm text-muted-foreground">
@@ -282,42 +320,58 @@ export function AdminSettings({ token }: { token: string }) {
         gold
         status={{ label: hubtelActive ? "Active" : "Not configured", ok: hubtelActive }}
       >
-        <Field
-          id="hubtel-client-id"
-          label="Hubtel API Key (Client ID)"
-          hint="From your Hubtel account → Settings → API Keys. Clear this field to switch the store back to manual MoMo instructions."
-        >
-          <Input
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Field
             id="hubtel-client-id"
-            value={hubtelClientId}
-            onChange={(e) => setHubtelClientId(e.target.value)}
-            placeholder="e.g. hkPq2xyz…"
-            className={`${inputCls} font-mono text-sm`}
-            maxLength={120}
-          />
-        </Field>
-        <Field
-          id="hubtel-secret"
-          label="Hubtel API Secret (Password)"
-          hint={
-            hubtelSecretSet
-              ? "A secret is configured. Leave blank to keep it; type a new one to replace it."
-              : "Paste the API secret that pairs with the API key above."
-          }
-        >
-          <Input
+            label="API Username"
+            hint="Hubtel Online Checkout credential — from your Hubtel account → API Keys."
+          >
+            <Input
+              id="hubtel-client-id"
+              value={hubtelClientId}
+              onChange={(e) => setHubtelClientId(e.target.value)}
+              placeholder="e.g. hkPq2xyz…"
+              className={`${inputCls} font-mono text-sm`}
+              maxLength={120}
+            />
+          </Field>
+          <Field
             id="hubtel-secret"
-            type="password"
-            value={hubtelSecret}
-            onChange={(e) => setHubtelSecret(e.target.value)}
-            placeholder={hubtelSecretSet ? "••••••••••  (configured)" : "e.g. 9f8e7d6c…"}
-            className={`${inputCls} font-mono text-sm`}
-            maxLength={120}
-            autoComplete="new-password"
-          />
-        </Field>
-        <div className="grid grid-cols-2 gap-4">
-          <Field id="hubtel-merchant" label="Merchant name">
+            label="API Key (Secret)"
+            hint={
+              hubtelSecretSet
+                ? "A key is configured. Leave blank to keep it; type a new one to replace it."
+                : "Paste the API Key that pairs with the API Username above."
+            }
+          >
+            <Input
+              id="hubtel-secret"
+              type="password"
+              value={hubtelSecret}
+              onChange={(e) => setHubtelSecret(e.target.value)}
+              placeholder={hubtelSecretSet ? "••••••••••  (configured)" : "e.g. 9f8e7d6c…"}
+              className={`${inputCls} font-mono text-sm`}
+              maxLength={120}
+              autoComplete="new-password"
+            />
+          </Field>
+        </div>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Field
+            id="hubtel-merchant-number"
+            label="Merchant Account Number"
+            hint="Required — Hubtel rejects checkouts without it."
+          >
+            <Input
+              id="hubtel-merchant-number"
+              value={hubtelMerchantNumber}
+              onChange={(e) => setHubtelMerchantNumber(e.target.value)}
+              placeholder="e.g. HM24010001"
+              className={`${inputCls} font-mono text-sm`}
+              maxLength={60}
+            />
+          </Field>
+          <Field id="hubtel-merchant" label="Display name">
             <Input
               id="hubtel-merchant"
               value={hubtelMerchant}
@@ -327,40 +381,62 @@ export function AdminSettings({ token }: { token: string }) {
               maxLength={60}
             />
           </Field>
-          <Field id="site-url" label="Public site URL" hint="Used for Hubtel callbacks.">
-            <Input
-              id="site-url"
-              value={siteUrl}
-              onChange={(e) => setSiteUrl(e.target.value)}
-              placeholder="https://shilohmerch.com"
-              className={`${inputCls} text-sm`}
-              maxLength={200}
-            />
-          </Field>
         </div>
-        <Button
-          onClick={() =>
-            save("hubtel", {
-              hubtelClientId: hubtelClientId.trim(),
-              hubtelClientSecret: hubtelSecret.trim() ? hubtelSecret.trim() : undefined,
-              hubtelMerchantName: hubtelMerchant.trim(),
-              siteUrl: siteUrl.trim(),
-            })
-          }
-          disabled={savingKey !== null}
-          className="h-12 w-full rounded-full bg-gradient-to-r from-gold to-gold-deep font-bold text-primary-foreground hover:opacity-95"
+        <Field
+          id="site-url"
+          label="Public site URL"
+          hint="Used for Hubtel payment callbacks. Must be reachable from the internet."
         >
-          {savingKey === "hubtel" ? (
-            <Loader2 className="mr-2 h-4.5 w-4.5 animate-spin" aria-hidden />
-          ) : (
-            <Save className="mr-2 h-4.5 w-4.5" aria-hidden />
-          )}
-          {hubtelActive ? "Save payment settings" : "Activate online payment"}
-        </Button>
+          <Input
+            id="site-url"
+            value={siteUrl}
+            onChange={(e) => setSiteUrl(e.target.value)}
+            placeholder="https://shilohmerch.com"
+            className={`${inputCls} text-sm`}
+            maxLength={200}
+          />
+        </Field>
+        <div className="grid gap-3 sm:grid-cols-[1fr_auto]">
+          <Button
+            onClick={() =>
+              save("hubtel", {
+                hubtelClientId: hubtelClientId.trim(),
+                hubtelClientSecret: hubtelSecret.trim() ? hubtelSecret.trim() : undefined,
+                hubtelMerchantNumber: hubtelMerchantNumber.trim(),
+                hubtelMerchantName: hubtelMerchant.trim(),
+                siteUrl: siteUrl.trim(),
+              })
+            }
+            disabled={savingKey !== null || testingHubtel}
+            className="h-12 w-full rounded-full bg-gradient-to-r from-gold to-gold-deep font-bold text-primary-foreground hover:opacity-95"
+          >
+            {savingKey === "hubtel" ? (
+              <Loader2 className="mr-2 h-4.5 w-4.5 animate-spin" aria-hidden />
+            ) : (
+              <Save className="mr-2 h-4.5 w-4.5" aria-hidden />
+            )}
+            {hubtelActive ? "Save payment settings" : "Activate online payment"}
+          </Button>
+          <Button
+            onClick={testHubtel}
+            disabled={savingKey !== null || testingHubtel || !hubtelActive}
+            variant="outline"
+            className="h-12 rounded-full border-gold/50 px-5 font-semibold text-gold hover:bg-gold/10 disabled:opacity-50"
+          >
+            {testingHubtel ? (
+              <Loader2 className="mr-2 h-4.5 w-4.5 animate-spin" aria-hidden />
+            ) : (
+              <PlugZap className="mr-2 h-4.5 w-4.5" aria-hidden />
+            )}
+            Test connection
+          </Button>
+        </div>
         <p className="text-xs leading-relaxed text-muted-foreground">
           When active, customers are taken straight to Hubtel&apos;s secure checkout after placing an
           order. Payment status flows back automatically and paid orders move to{" "}
-          <span className="font-semibold text-foreground">Under review</span>.
+          <span className="font-semibold text-foreground">Under review</span>. Save your
+          credentials first, then hit <span className="font-semibold text-foreground">Test connection</span> to
+          verify them against the live Hubtel API.
         </p>
       </CardShell>
 

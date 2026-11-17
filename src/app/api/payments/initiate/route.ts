@@ -53,7 +53,13 @@ export async function POST(req: NextRequest) {
 
     await db.order.update({
       where: { id: order.id },
-      data: { paymentToken: result.token, paymentMethod: "hubtel" },
+      data: {
+        // paymentToken now holds the clientReference sent to Hubtel
+        // (the order code) so webhook callbacks match back to the order.
+        paymentToken: result.token,
+        paymentMethod: "hubtel",
+        paymentStatus: "verifying",
+      },
     });
 
     return NextResponse.json({ url: result.url, token: result.token });
