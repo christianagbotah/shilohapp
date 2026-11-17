@@ -15,6 +15,7 @@ export function AdminGate() {
   const setView = useUi((s) => s.setView);
   const { data: info } = useStoreInfo();
   const year = info?.shilohYear ?? STORE_INFO_DEFAULTS.shilohYear;
+  const tagline = info?.shilohTagline ?? STORE_INFO_DEFAULTS.shilohTagline;
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -52,7 +53,8 @@ export function AdminGate() {
           <BrandLogo size={56} priority />
           <h1 className="mt-4 font-display text-2xl font-bold">Back Office</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Shiloh {year} Merch — orders &amp; payments
+            Shiloh {year} — <span className="font-semibold text-gold">{tagline}</span> • orders &amp;
+            payments
           </p>
         </div>
 

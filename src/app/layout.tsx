@@ -26,10 +26,11 @@ export async function generateMetadata(): Promise<Metadata> {
     // DB not initialised yet — keep defaults
   }
   return {
-    title: `Shiloh ${year} (${tagline}) Merch — Official Convocation Store | Winners Chapel International`,
+    title: `Shiloh ${year} — ${tagline} | Official Merch Store | Winners Chapel International`,
     description: `Official Shiloh ${year} “${tagline}” convocation merchandise for the Winners' family worldwide. T-shirts, lacostes, jerseys and caps for adults & kids. Order in seconds and pay with MTN Mobile Money across Ghana.`,
     keywords: [
       `Shiloh ${year}`,
+      `Shiloh ${year} ${tagline}`,
       "Winners Chapel",
       "convocation merch",
       "Shiloh t-shirt",
@@ -39,7 +40,7 @@ export async function generateMetadata(): Promise<Metadata> {
       "Ghana mobile money shopping",
     ],
     openGraph: {
-      title: `Shiloh ${year} Merch — Official Convocation Store`,
+      title: `Shiloh ${year} — ${tagline}`,
       description:
         "T-shirts, lacostes, jerseys & caps for adults and kids. Order in seconds, pay with MoMo anywhere in Ghana.",
       type: "website",

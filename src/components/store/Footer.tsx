@@ -21,9 +21,11 @@ export function Footer() {
             <div className="flex items-center gap-2.5">
               <BrandLogo size={40} />
               <span className="flex flex-col leading-none">
-                <span className="font-display text-lg font-bold tracking-wide">SHILOH</span>
-                <span className="text-[0.6rem] font-semibold uppercase tracking-[0.28em] text-muted-foreground">
-                  {year} Merch
+                <span className="font-display text-lg font-bold tracking-wide">
+                  SHILOH <span className="text-gold">{year}</span>
+                </span>
+                <span className="text-[0.6rem] font-semibold tracking-[0.28em] text-gold">
+                  {tagline}
                 </span>
               </span>
             </div>

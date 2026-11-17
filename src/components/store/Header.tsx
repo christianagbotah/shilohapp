@@ -23,6 +23,7 @@ export function Header() {
   const { data: info } = useStoreInfo();
   const mounted = useMounted();
   const year = info?.shilohYear ?? STORE_INFO_DEFAULTS.shilohYear;
+  const tagline = info?.shilohTagline ?? STORE_INFO_DEFAULTS.shilohTagline;
 
   const count = mounted ? cartCount(items) : 0;
 
@@ -38,12 +39,18 @@ export function Header() {
       ) : null}
       <div className="border-b border-border bg-background/85 backdrop-blur-xl">
         <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-3 px-4 sm:px-6">
-          <a href="#top" className="flex items-center gap-2.5" aria-label={`Shiloh ${year} Merch — home`}>
+          <a
+            href="#top"
+            className="flex items-center gap-2.5"
+            aria-label={`Shiloh ${year} — ${tagline} — home`}
+          >
             <BrandLogo size={40} priority />
             <span className="flex flex-col leading-none">
-              <span className="font-display text-lg font-bold tracking-wide">SHILOH</span>
-              <span className="text-[0.6rem] font-semibold uppercase tracking-[0.28em] text-muted-foreground">
-                {year} Merch
+              <span className="font-display text-lg font-bold tracking-wide">
+                SHILOH <span className="text-gold">{year}</span>
+              </span>
+              <span className="text-[0.6rem] font-semibold tracking-[0.28em] text-gold">
+                {tagline}
               </span>
             </span>
           </a>
