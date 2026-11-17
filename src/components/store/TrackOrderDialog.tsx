@@ -5,6 +5,7 @@ import {
   Ban,
   CircleCheck,
   CircleDashed,
+  ExternalLink,
   Loader2,
   PackageSearch,
   Search,
@@ -19,7 +20,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useUi } from "@/store/ui";
-import { fetchJson } from "@/hooks/use-store-data";
+import { fetchJson, useStoreInfo } from "@/hooks/use-store-data";
 import { formatGhs } from "@/lib/format";
 import { ORDER_STATUS_LABELS, PAYMENT_STATUS_LABELS, type OrderDTO } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -38,9 +39,33 @@ function stageIndex(order: OrderDTO): number {
   return 0;
 }
 
-function OrderCard({ order }: { order: OrderDTO }) {
+function OrderCard({ order, hubtelActive }: { order: OrderDTO; hubtelActive: boolean }) {
   const stage = stageIndex(order);
   const cancelled = order.status === "cancelled";
+  const [paying, setPaying] = useState(false);
+  const [payError, setPayError] = useState<string | null>(null);
+
+  // Unpaid orders can be settled right here via Hubtel's secure checkout
+  const canPay = hubtelActive && !cancelled && order.paymentStatus !== "paid";
+
+  const payNow = async () => {
+    setPaying(true);
+    setPayError(null);
+    try {
+      const res = await fetchJson<{ url: string }>("/api/payments/initiate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code: order.code, phone: order.phone }),
+      });
+      window.location.href = res.url;
+    } catch (err) {
+      setPaying(false);
+      setPayError(
+        err instanceof Error ? err.message : "Could not start payment. Please try again."
+      );
+    }
+  };
+
   return (
     <article className="rounded-2xl border border-border bg-background/60 p-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
@@ -116,6 +141,34 @@ function OrderCard({ order }: { order: OrderDTO }) {
         </ol>
       )}
 
+      {canPay ? (
+        <div className="mt-3 flex flex-col gap-1.5">
+          <Button
+            onClick={payNow}
+            disabled={paying}
+            className="h-11 w-full rounded-full bg-gradient-to-r from-gold to-gold-deep font-bold text-primary-foreground shadow-[0_12px_32px_-10px_var(--gold)] hover:opacity-95"
+          >
+            {paying ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden />
+            ) : (
+              <ExternalLink className="mr-2 h-4 w-4" aria-hidden />
+            )}
+            {paying ? "Connecting to Hubtel…" : `Pay Now — ${formatGhs(order.total)}`}
+          </Button>
+          <p className="text-center text-[0.68rem] text-muted-foreground">
+            MTN MoMo • Telecel Cash • AT Money • Cards — secured by Hubtel
+          </p>
+          {payError ? (
+            <p
+              role="alert"
+              className="rounded-xl border border-destructive/40 bg-destructive/10 p-2.5 text-xs text-destructive"
+            >
+              {payError}
+            </p>
+          ) : null}
+        </div>
+      ) : null}
+
       <ul className="mt-2 space-y-1.5 border-t border-border pt-3">
         {order.items.map((item) => (
           <li key={item.id} className="flex items-center justify-between gap-2 text-sm">
@@ -143,6 +196,7 @@ export function TrackOrderDialog() {
   const trackOpen = useUi((s) => s.trackOpen);
   const setTrackOpen = useUi((s) => s.setTrackOpen);
   const prefill = useUi((s) => s.trackPrefill);
+  const { data: info } = useStoreInfo();
 
   const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(false);
@@ -242,7 +296,7 @@ export function TrackOrderDialog() {
           {orders.length > 0 ? (
             <div className="space-y-3">
               {orders.map((order) => (
-                <OrderCard key={order.id} order={order} />
+                <OrderCard key={order.id} order={order} hubtelActive={info?.hubtelActive ?? false} />
               ))}
             </div>
           ) : null}
