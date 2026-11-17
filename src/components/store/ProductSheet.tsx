@@ -167,10 +167,11 @@ function Options({ product }: { product: ProductDTO }) {
         </div>
       </div>
 
-      {/* Fixed CTA footer — always visible, never overlaps content */}
-      <div className="border-t border-border bg-card px-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3 sm:px-6">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-          <div className="flex items-center gap-1 self-center rounded-full border border-border bg-secondary p-1">
+      {/* Fixed CTA footer — always visible, never overlaps content.
+          Counter + button share one row at every breakpoint (same as desktop). */}
+      <div className="border-t border-border bg-card px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3 sm:px-6">
+        <div className="flex items-center gap-2 sm:gap-3">
+          <div className="flex shrink-0 items-center rounded-full border border-border bg-secondary p-1">
             <Button
               type="button"
               variant="ghost"
@@ -197,9 +198,9 @@ function Options({ product }: { product: ProductDTO }) {
           </div>
           <Button
             onClick={handleAdd}
-            className="h-12 flex-1 rounded-full bg-gradient-to-r from-gold to-gold-deep text-base font-bold text-primary-foreground shadow-[0_12px_32px_-10px_var(--gold)] hover:opacity-95"
+            className="h-12 min-w-0 flex-1 whitespace-nowrap rounded-full bg-gradient-to-r from-gold to-gold-deep text-sm font-bold text-primary-foreground shadow-[0_12px_32px_-10px_var(--gold)] hover:opacity-95 max-[359px]:text-xs sm:text-base"
           >
-            <ShoppingBag className="mr-2 h-4.5 w-4.5" aria-hidden />
+            <ShoppingBag className="mr-1.5 h-4 w-4 sm:mr-2 sm:h-4.5 sm:w-4.5" aria-hidden />
             Add to Cart — {formatGhs(lineTotal)}
           </Button>
         </div>
