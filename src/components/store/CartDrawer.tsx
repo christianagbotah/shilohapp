@@ -1,10 +1,10 @@
 "use client";
 
-import Image from "next/image";
 import { ArrowRight, Minus, Plus, ShoppingBag, Trash2 } from "lucide-react";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
+import { TintableProductImage } from "@/components/store/TintableProductImage";
 import { useCart, cartTotal } from "@/store/cart";
 import { useUi } from "@/store/ui";
 import { useMounted } from "@/hooks/use-mounted";
@@ -74,13 +74,7 @@ export function CartDrawer() {
                     className="flex gap-3 rounded-2xl border border-border bg-background/60 p-3"
                   >
                     <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-xl bg-secondary">
-                      <Image
-                        src={item.image}
-                        alt={item.name}
-                        fill
-                        sizes="80px"
-                        className="object-cover"
-                      />
+                      <TintableProductImage src={item.image} alt={item.name} tint={item.colorHex} />
                     </div>
                     <div className="flex min-w-0 flex-1 flex-col">
                       <div className="flex items-start justify-between gap-2">

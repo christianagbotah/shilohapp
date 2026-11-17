@@ -1,18 +1,25 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import Image from "next/image";
 import { AnimatePresence, motion } from "framer-motion";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import type { ProductDTO } from "@/lib/types";
+import { TintableProductImage } from "@/components/store/TintableProductImage";
 import { cn } from "@/lib/utils";
 
 /**
  * Multi-view product gallery (Front / Side / Back / Detail) with
  * motionsites-style cross-fade + slide transitions, swipe gestures,
- * labelled thumbnails and a segmented scrubber.
+ * labelled thumbnails and a segmented scrubber. The garment fabric is
+ * re-tinted live as the shopper picks a colour.
  */
-export function ProductGallery({ product }: { product: ProductDTO }) {
+export function ProductGallery({
+  product,
+  tintHex,
+}: {
+  product: ProductDTO;
+  tintHex?: string | null;
+}) {
   const views = product.gallery.length
     ? product.gallery
     : [{ src: product.image, label: "Front" }];
@@ -88,14 +95,11 @@ export function ProductGallery({ product }: { product: ProductDTO }) {
             }}
             className="absolute inset-0 cursor-grab active:cursor-grabbing"
           >
-            <Image
+            <TintableProductImage
               src={current.src}
               alt={`${product.name} — ${current.label} view`}
-              fill
-              priority={index === 0}
-              sizes="(max-width: 640px) 92vw, 420px"
-              className="object-cover pointer-events-none"
-              draggable={false}
+              tint={tintHex}
+              className="pointer-events-none"
             />
           </motion.div>
         </AnimatePresence>
@@ -164,14 +168,7 @@ export function ProductGallery({ product }: { product: ProductDTO }) {
               )}
             >
               <span className="relative block aspect-[4/3] w-full bg-secondary">
-                <Image
-                  src={v.src}
-                  alt=""
-                  fill
-                  sizes="120px"
-                  className="object-cover"
-                  draggable={false}
-                />
+                <TintableProductImage src={v.src} alt="" tint={tintHex} />
               </span>
               <span
                 className={cn(

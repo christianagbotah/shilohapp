@@ -69,7 +69,7 @@ function Options({ product }: { product: ProductDTO }) {
     <>
       <div className="pretty-scroll flex-1 overflow-y-auto p-4 sm:p-6">
         <div className="grid gap-5 sm:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)]">
-      <ProductGallery product={product} />
+      <ProductGallery product={product} tintHex={selectedHex} />
 
       <div className="flex min-w-0 flex-col">
         <DrawerTitle asChild>
