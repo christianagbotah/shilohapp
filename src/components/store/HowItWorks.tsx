@@ -1,9 +1,10 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { ClipboardList, ShoppingBag, Smartphone } from "lucide-react";
+import { BadgeCheck, ClipboardList, ShoppingBag, Smartphone } from "lucide-react";
+import { useStoreInfo } from "@/hooks/use-store-data";
 
-const STEPS = [
+const MANUAL_STEPS = [
   {
     icon: ShoppingBag,
     step: "01",
@@ -24,7 +25,32 @@ const STEPS = [
   },
 ];
 
+const HUBTEL_STEPS = [
+  {
+    icon: ShoppingBag,
+    step: "01",
+    title: "Pick your merch",
+    body: "Browse t-shirts, lacostes, jerseys and caps for adults and kids. Choose colour, size and quantity — caps come soft or hard.",
+  },
+  {
+    icon: ClipboardList,
+    step: "02",
+    title: "Place your order",
+    body: "Enter your name and phone number — no account needed. Tap Pay Now and you instantly receive a unique order code, e.g. SHL-7K2P9Q.",
+  },
+  {
+    icon: BadgeCheck,
+    step: "03",
+    title: "Pay & get instant confirmation",
+    body: "Approve Hubtel's secure prompt on your phone — MTN MoMo, Telecel Cash, AirtelTigo Money or card. Your order confirms instantly and SMS alerts keep you posted.",
+  },
+];
+
 export function HowItWorks() {
+  const { data: info } = useStoreInfo();
+  const hubtelActive = info?.hubtelActive ?? false;
+  const steps = hubtelActive ? HUBTEL_STEPS : MANUAL_STEPS;
+
   return (
     <section id="how" className="border-y border-border bg-secondary/40">
       <div className="mx-auto max-w-6xl scroll-mt-24 px-4 py-14 sm:px-6 sm:py-20">
@@ -34,12 +60,13 @@ export function HowItWorks() {
             How to Order
           </h2>
           <p className="mx-auto mt-3 max-w-lg text-sm leading-relaxed text-muted-foreground sm:text-base">
-            From picking your piece to confirming payment — the whole flow takes less than two
-            minutes on your phone.
+            {hubtelActive
+              ? "From picking your piece to instant confirmation — the whole flow takes less than two minutes on your phone."
+              : "From picking your piece to confirming payment — the whole flow takes less than two minutes on your phone."}
           </p>
         </div>
         <div className="grid gap-5 sm:grid-cols-3 sm:gap-6">
-          {STEPS.map((s, i) => (
+          {steps.map((s, i) => (
             <motion.div
               key={s.step}
               initial={{ opacity: 0, y: 22 }}

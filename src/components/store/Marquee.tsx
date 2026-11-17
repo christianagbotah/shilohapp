@@ -9,12 +9,13 @@ function useMarqueeItems() {
   const year = info?.shilohYear ?? STORE_INFO_DEFAULTS.shilohYear;
   const tagline = info?.shilohTagline ?? STORE_INFO_DEFAULTS.shilohTagline;
   const dates = info?.shilohDates ?? STORE_INFO_DEFAULTS.shilohDates;
+  const hubtelActive = info?.hubtelActive ?? false;
   return [
     `Shiloh ${year}`,
     dates,
     tagline,
     "Official Convocation Merch",
-    "Pay with MoMo",
+    hubtelActive ? "Pay with Hubtel" : "Pay with MoMo",
     "Adults & Kids",
   ];
 }

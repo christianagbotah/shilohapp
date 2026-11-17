@@ -45,7 +45,7 @@ export function Footer() {
             <ul className="mt-4 space-y-2.5 text-sm text-muted-foreground">
               <li><a className="transition-colors hover:text-gold" href="#shop">The Collection</a></li>
               <li><a className="transition-colors hover:text-gold" href="#how">How to Order</a></li>
-              <li><a className="transition-colors hover:text-gold" href="#payment">MoMo Payment</a></li>
+              <li><a className="transition-colors hover:text-gold" href="#payment">Payments</a></li>
               <li><a className="transition-colors hover:text-gold" href="#faq">FAQ</a></li>
             </ul>
           </nav>
