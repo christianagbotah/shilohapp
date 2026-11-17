@@ -36,12 +36,16 @@ model Order {
   address       String?
   status        String      @default("pending") // pending | reviewing | contacted | fulfilled | cancelled
   paymentStatus String      @default("unpaid") // unpaid | verifying | paid
+  paymentMethod String? // hubtel | momo-manual
+  paymentToken  String? // Hubtel online-checkout token for this order
+  paidAt        DateTime?
   subtotal      Float
   total         Float
   adminNotes    String?
   createdAt     DateTime    @default(now())
   updatedAt     DateTime    @updatedAt
   items         OrderItem[]
+  notifications NotificationLog[]
 }
 
 model OrderItem {
@@ -60,8 +64,27 @@ model OrderItem {
   quantity    Int
 }
 
-// Simple key/value store: momo_number, momo_name, admin_password, announcement
+// Simple key/value store: momo_number, momo_name, admin_password, announcement,
+// hubtel_client_id, hubtel_client_secret, hubtel_merchant_name, site_url,
+// sms_client_id, sms_client_secret, sms_sender, admin_phone, admin_email,
+// notify_customer_sms, notify_admin_sms, notify_admin_email,
+// smtp_host, smtp_port, smtp_user, smtp_pass, smtp_secure,
+// notify_from_email, notify_to_email
 model Setting {
   key   String @id
   value String
+}
+
+// Every SMS / email the system attempts to send, so the back office can
+// audit delivery and retry when a provider fails.
+model NotificationLog {
+  id        String   @id @default(cuid())
+  channel   String // sms | email
+  recipient String
+  purpose   String // order_placed_customer | order_placed_admin | payment_confirmed_* | test
+  status    String // sent | failed | skipped
+  detail    String? // provider response or error message
+  orderId   String?
+  order     Order?   @relation(fields: [orderId], references: [id], onDelete: SetNull)
+  createdAt DateTime @default(now())
 }

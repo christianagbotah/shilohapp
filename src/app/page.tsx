@@ -16,6 +16,7 @@ import { CartDrawer, CartFab } from "@/components/store/CartDrawer";
 import { ProductSheet } from "@/components/store/ProductSheet";
 import { CheckoutDialog } from "@/components/store/CheckoutDialog";
 import { OrderSuccessDialog } from "@/components/store/OrderSuccessDialog";
+import { PaymentResultDialog } from "@/components/store/PaymentResultDialog";
 import { TrackOrderDialog } from "@/components/store/TrackOrderDialog";
 import { AdminView } from "@/components/admin/AdminView";
 
@@ -38,6 +39,7 @@ function Storefront() {
       <ProductSheet />
       <CheckoutDialog />
       <OrderSuccessDialog />
+      <PaymentResultDialog />
       <TrackOrderDialog />
       <CartFab />
     </div>

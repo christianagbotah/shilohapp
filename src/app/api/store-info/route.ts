@@ -15,6 +15,8 @@ export async function GET() {
       shilohTagline,
       shilohDates,
       shilohStart,
+      hubtelClientId,
+      hubtelClientSecret,
     ] = await Promise.all([
       getSetting("momo_number"),
       getSetting("momo_name"),
@@ -24,6 +26,8 @@ export async function GET() {
       getSetting("shiloh_tagline"),
       getSetting("shiloh_dates"),
       getSetting("shiloh_start"),
+      getSetting("hubtel_client_id"),
+      getSetting("hubtel_client_secret"),
     ]);
     return NextResponse.json({
       momoNumber: momoNumber ?? "",
@@ -34,6 +38,8 @@ export async function GET() {
       shilohTagline: shilohTagline ?? STORE_INFO_DEFAULTS.shilohTagline,
       shilohDates: shilohDates ?? STORE_INFO_DEFAULTS.shilohDates,
       shilohStart: shilohStart ?? STORE_INFO_DEFAULTS.shilohStart,
+      /** True when the admin has activated Hubtel online checkout. */
+      hubtelActive: Boolean(hubtelClientId && hubtelClientSecret),
     });
   } catch (err) {
     console.error("GET /api/store-info failed:", err);

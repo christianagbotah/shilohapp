@@ -1,7 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
+import { after } from "next/server";
 import { z } from "zod";
 import { db } from "@/lib/db";
 import { generateOrderCode, normalizeGhPhone } from "@/lib/format";
+import { notifyOrderPlaced } from "@/lib/notify";
+import { toNotifyOrder } from "@/lib/payments";
 import type { OrderDTO } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
@@ -136,8 +139,29 @@ export async function POST(req: NextRequest) {
       include: { items: true },
     });
 
+    // Fire SMS + email alerts (customer + admin) AFTER the response is sent
+    // so checkout stays instant. Failures are logged, never surfaced.
+    after(async () => {
+      try {
+        await notifyOrderPlaced(toNotifyOrder(order));
+      } catch (err) {
+        console.error("Order notifications failed:", err);
+      }
+    });
+
     const dto: OrderDTO = {
-      ...order,
+      id: order.id,
+      code: order.code,
+      fullName: order.fullName,
+      phone: order.phone,
+      address: order.address,
+      status: order.status as OrderDTO["status"],
+      paymentStatus: order.paymentStatus as OrderDTO["paymentStatus"],
+      paymentMethod: order.paymentMethod,
+      paidAt: order.paidAt ? order.paidAt.toISOString() : null,
+      subtotal: order.subtotal,
+      total: order.total,
+      adminNotes: order.adminNotes,
       createdAt: order.createdAt.toISOString(),
       items: order.items.map((i) => ({
         id: i.id,

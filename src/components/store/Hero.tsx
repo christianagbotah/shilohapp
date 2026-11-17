@@ -230,15 +230,6 @@ export function Hero() {
               <p className="text-xs text-muted-foreground">Quality you can trust</p>
             </div>
           </motion.div>
-
-          <motion.div
-            animate={{ y: [0, 10, 0] }}
-            transition={{ duration: 5, repeat: Infinity, ease: "easeInOut", delay: 0.6 }}
-            className="absolute -right-2 top-6 rounded-2xl border border-border bg-card/90 px-4 py-3 shadow-2xl backdrop-blur sm:right-4"
-          >
-            <p className="text-xs font-medium uppercase tracking-widest text-muted-foreground">From</p>
-            <p className="font-display text-xl font-bold text-gold">GH₵50</p>
-          </motion.div>
         </motion.div>
       </div>
 

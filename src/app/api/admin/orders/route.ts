@@ -24,6 +24,8 @@ export async function GET(req: NextRequest) {
       address: order.address,
       status: order.status as OrderDTO["status"],
       paymentStatus: order.paymentStatus as OrderDTO["paymentStatus"],
+      paymentMethod: order.paymentMethod,
+      paidAt: order.paidAt ? order.paidAt.toISOString() : null,
       subtotal: order.subtotal,
       total: order.total,
       adminNotes: order.adminNotes,

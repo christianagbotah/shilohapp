@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Image from "next/image";
-import { AlertCircle, Loader2, Lock, Phone, ShoppingBag, User } from "lucide-react";
+import { AlertCircle, Loader2, Lock, Phone, ShieldCheck, ShoppingBag, Smartphone, User } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -17,7 +17,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useCart, cartTotal } from "@/store/cart";
 import { useUi } from "@/store/ui";
 import { useMounted } from "@/hooks/use-mounted";
-import { fetchJson } from "@/hooks/use-store-data";
+import { fetchJson, useStoreInfo } from "@/hooks/use-store-data";
 import { formatGhs } from "@/lib/format";
 import type { OrderDTO } from "@/lib/types";
 
@@ -27,6 +27,8 @@ export function CheckoutDialog() {
   const checkoutOpen = useUi((s) => s.checkoutOpen);
   const setCheckoutOpen = useUi((s) => s.setCheckoutOpen);
   const setPlacedOrder = useUi((s) => s.setPlacedOrder);
+  const setPlacedOrderNotice = useUi((s) => s.setPlacedOrderNotice);
+  const { data: info } = useStoreInfo();
 
   const [fullName, setFullName] = useState("");
   const [phone, setPhone] = useState("");
@@ -35,6 +37,7 @@ export function CheckoutDialog() {
   const [submitting, setSubmitting] = useState(false);
   const mounted = useMounted();
 
+  const hubtelActive = info?.hubtelActive ?? false;
   const total = mounted ? cartTotal(items) : 0;
   const itemCount = mounted ? items.reduce((n, i) => n + i.quantity, 0) : 0;
 
@@ -74,8 +77,47 @@ export function CheckoutDialog() {
           })),
         }),
       });
+
+      // Remember the last order so the payment-result dialog (shown after
+      // returning from Hubtel) can offer "try again" without re-entering data.
+      try {
+        window.localStorage.setItem(
+          "shiloh-last-order",
+          JSON.stringify({ code: res.order.code, phone: normalized })
+        );
+      } catch {
+        /* private mode — ignore */
+      }
+
+      if (hubtelActive) {
+        // One tap: order is created, hand the customer straight to Hubtel's
+        // secure checkout. If Hubtel can't start a session we fall back to
+        // the manual MoMo instructions instead of losing the order.
+        try {
+          const pay = await fetchJson<{ url: string }>("/api/payments/initiate", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ code: res.order.code, phone: normalized }),
+          });
+          clear();
+          setCheckoutOpen(false);
+          window.location.href = pay.url;
+          return;
+        } catch (err) {
+          const message =
+            err instanceof Error ? err.message : "Online payment is unavailable right now.";
+          // Order exists — let the customer pay manually meanwhile.
+          clear();
+          setCheckoutOpen(false);
+          setPlacedOrderNotice(message);
+          setPlacedOrder(res.order);
+          return;
+        }
+      }
+
       clear();
       setCheckoutOpen(false);
+      setPlacedOrderNotice(null);
       setPlacedOrder(res.order);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not place your order. Please try again.");
@@ -94,7 +136,9 @@ export function CheckoutDialog() {
           </DialogTitle>
           <DialogDescription>
             {itemCount > 0
-              ? `${itemCount} item${itemCount > 1 ? "s" : ""} • ${formatGhs(total)} — pay with MoMo after placing your order.`
+              ? hubtelActive
+                ? `${itemCount} item${itemCount > 1 ? "s" : ""} • ${formatGhs(total)} — pay securely after you place the order.`
+                : `${itemCount} item${itemCount > 1 ? "s" : ""} • ${formatGhs(total)} — pay with MoMo after placing your order.`
               : "Your cart is empty."}
           </DialogDescription>
         </DialogHeader>
@@ -195,6 +239,17 @@ export function CheckoutDialog() {
             </p>
           ) : null}
 
+          {hubtelActive ? (
+            <div className="flex items-start gap-2.5 rounded-xl border border-gold/30 bg-gold/10 p-3.5 text-xs leading-relaxed text-muted-foreground">
+              <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-gold" aria-hidden />
+              <span>
+                You&apos;ll be taken to <span className="font-semibold text-foreground">Hubtel&apos;s secure checkout</span> to pay
+                with MTN MoMo, Telecel Cash, AirtelTigo Money or card. Your order is confirmed the
+                moment payment succeeds.
+              </span>
+            </div>
+          ) : null}
+
           <Button
             type="submit"
             disabled={submitting || itemCount === 0}
@@ -203,17 +258,23 @@ export function CheckoutDialog() {
             {submitting ? (
               <>
                 <Loader2 className="mr-2 h-4.5 w-4.5 animate-spin" aria-hidden />
-                Placing your order…
+                {hubtelActive ? "Starting secure payment…" : "Placing your order…"}
               </>
             ) : (
               <>
-                <Lock className="mr-2 h-4 w-4" aria-hidden />
-                Place Order — {formatGhs(total)}
+                {hubtelActive ? (
+                  <Smartphone className="mr-2 h-4 w-4" aria-hidden />
+                ) : (
+                  <Lock className="mr-2 h-4 w-4" aria-hidden />
+                )}
+                {hubtelActive ? `Pay Now — ${formatGhs(total)}` : `Place Order — ${formatGhs(total)}`}
               </>
             )}
           </Button>
           <p className="text-center text-xs text-muted-foreground">
-            No account needed. You&apos;ll get a unique order code to use as your MoMo reference.
+            {hubtelActive
+              ? "Secured by Hubtel • MTN MoMo • Telecel Cash • AT Money • Cards"
+              : "No account needed. You'll get a unique order code to use as your MoMo reference."}
           </p>
         </form>
       </DialogContent>

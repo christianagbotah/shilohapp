@@ -14,6 +14,8 @@ type UiState = {
   trackOpen: boolean;
   trackPrefill: string;
   placedOrder: OrderDTO | null;
+  /** Shown on the success dialog when online payment couldn't start. */
+  placedOrderNotice: string | null;
   setView: (view: AppView) => void;
   setAdminToken: (token: string | null) => void;
   openProduct: (p: ProductDTO) => void;
@@ -23,6 +25,7 @@ type UiState = {
   setTrackOpen: (open: boolean) => void;
   setTrackPrefill: (prefill: string) => void;
   setPlacedOrder: (order: OrderDTO | null) => void;
+  setPlacedOrderNotice: (notice: string | null) => void;
 };
 
 const initialToken =
@@ -37,6 +40,7 @@ export const useUi = create<UiState>()((set) => ({
   trackOpen: false,
   trackPrefill: "",
   placedOrder: null,
+  placedOrderNotice: null,
   setView: (view) => set({ view }),
   setAdminToken: (token) => {
     if (typeof window !== "undefined") {
@@ -52,4 +56,5 @@ export const useUi = create<UiState>()((set) => ({
   setTrackOpen: (trackOpen) => set({ trackOpen }),
   setTrackPrefill: (trackPrefill) => set({ trackPrefill }),
   setPlacedOrder: (placedOrder) => set({ placedOrder }),
+  setPlacedOrderNotice: (placedOrderNotice) => set({ placedOrderNotice }),
 }));

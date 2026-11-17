@@ -232,3 +232,64 @@
 .pulse-ring {
   animation: pulse-ring 2.2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
+
+/* ---------------------------------------------------------------------------
+ * Print — Back Office invoices & manifests
+ * ------------------------------------------------------------------------- */
+@media print {
+  @page {
+    size: A4;
+    margin: 14mm;
+  }
+
+  html,
+  body {
+    background: #ffffff !important;
+  }
+
+  /* The whole dashboard is wrapped in .print:hidden-app */
+  .print-hidden-app {
+    display: none !important;
+  }
+
+  .print-doc {
+    display: block !important;
+    position: static !important;
+    color: #111111 !important;
+  }
+
+  .print-doc * {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .print-doc table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+
+  .print-doc th,
+  .print-doc td {
+    text-align: left;
+    padding: 6px 8px;
+    border-bottom: 1px solid #d6d3d1;
+    font-size: 11px;
+  }
+
+  .print-doc thead th {
+    background: #f5f5f4;
+    border-bottom: 2px solid #a8a29e;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+
+  .print-page-break {
+    page-break-after: always;
+  }
+}
+
+/* Screen preview wrapper for the (hidden until print) documents */
+.print-doc {
+  display: none;
+}

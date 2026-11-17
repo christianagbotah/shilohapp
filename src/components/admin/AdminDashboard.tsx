@@ -1,17 +1,21 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   ArrowLeft,
   Banknote,
+  BellRing,
   CheckCircle2,
   ChevronRight,
   Clock3,
+  Download,
+  FileText,
   Loader2,
   LogOut,
   Package,
   Phone,
+  Printer,
   RefreshCcw,
   Search,
   Settings2,
@@ -44,6 +48,7 @@ import { formatGhs } from "@/lib/format";
 import { BrandLogo } from "@/components/store/BrandLogo";
 import {
   ORDER_STATUS_LABELS,
+  PAYMENT_METHOD_LABELS,
   PAYMENT_STATUS_LABELS,
   STORE_INFO_DEFAULTS,
   type AdminStats,
@@ -53,6 +58,11 @@ import {
 } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { AdminSettings } from "@/components/admin/AdminSettings";
+import { AdminAlerts } from "@/components/admin/AdminAlerts";
+import { PrintRoot, type PrintJob } from "@/components/admin/AdminPrint";
+
+// Ensure lucide icon typing stays consistent for StatCard
+import type { LucideIcon } from "lucide-react";
 
 type AdminOrdersResponse = { orders: OrderDTO[]; stats: AdminStats };
 
@@ -128,7 +138,7 @@ function StatCard({
   value,
   highlight,
 }: {
-  icon: React.ElementType;
+  icon: LucideIcon;
   label: string;
   value: string;
   highlight?: boolean;
@@ -162,10 +172,12 @@ function OrderDetail({
   order,
   token,
   onClose,
+  onPrint,
 }: {
   order: OrderDTO;
   token: string;
   onClose: () => void;
+  onPrint: (order: OrderDTO) => void;
 }) {
   const queryClient = useQueryClient();
   const { toast } = useToast();
@@ -198,13 +210,28 @@ function OrderDetail({
           <StatusBadge status={order.status} />
           <PaymentBadge status={order.paymentStatus} />
         </DialogTitle>
-        <DialogDescription>
-          Placed {new Date(order.createdAt).toLocaleString("en-GB", {
-            day: "numeric",
-            month: "short",
-            hour: "2-digit",
-            minute: "2-digit",
-          })}
+        <DialogDescription className="flex flex-wrap items-center gap-x-3 gap-y-1">
+          <span>
+            Placed {new Date(order.createdAt).toLocaleString("en-GB", {
+              day: "numeric",
+              month: "short",
+              hour: "2-digit",
+              minute: "2-digit",
+            })}
+          </span>
+          {order.paymentMethod ? (
+            <span className="text-muted-foreground">
+              • {PAYMENT_METHOD_LABELS[order.paymentMethod] ?? order.paymentMethod}
+              {order.paidAt
+                ? ` on ${new Date(order.paidAt).toLocaleString("en-GB", {
+                    day: "numeric",
+                    month: "short",
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })}`
+                : ""}
+            </span>
+          ) : null}
         </DialogDescription>
       </DialogHeader>
 
@@ -269,6 +296,14 @@ function OrderDetail({
             Payment actions
           </p>
           <div className="flex flex-wrap gap-2">
+            <Button
+              variant="outline"
+              onClick={() => onPrint(order)}
+              className="rounded-full border-gold/40 font-semibold text-gold hover:bg-gold/10"
+            >
+              <Printer className="mr-2 h-4 w-4" aria-hidden />
+              Print invoice
+            </Button>
             {order.paymentStatus !== "paid" ? (
               <Button
                 onClick={() => act("paid", { paymentStatus: "paid" })}
@@ -394,7 +429,59 @@ function OrderDetail({
   );
 }
 
-function OrdersPanel({ token }: { token: string }) {
+function exportOrdersCsv(orders: OrderDTO[]) {
+  const header = [
+    "Code",
+    "Placed at",
+    "Customer",
+    "Phone",
+    "Address",
+    "Items",
+    "Total (GHS)",
+    "Payment status",
+    "Payment method",
+    "Paid at",
+    "Order status",
+    "Notes",
+  ];
+  const escape = (cell: string) => `"${cell.replace(/"/g, '""')}"`;
+  const rows = orders.map((o) => [
+    o.code,
+    new Date(o.createdAt).toLocaleString("en-GB"),
+    o.fullName,
+    o.phone,
+    o.address ?? "",
+    o.items
+      .map((i) => `${i.quantity}x ${i.productName} (${i.color}/${i.size}${i.capStyle ? `/${i.capStyle}` : ""})`)
+      .join("; "),
+    o.total.toFixed(2),
+    o.paymentStatus,
+    o.paymentMethod ?? "",
+    o.paidAt ? new Date(o.paidAt).toLocaleString("en-GB") : "",
+    o.status,
+    o.adminNotes ?? "",
+  ].map(escape).join(","));
+  const csv = [header.map(escape).join(","), ...rows].join("\r\n");
+  const blob = new Blob(["\ufeff" + csv], { type: "text/csv;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `shiloh-orders-${new Date().toISOString().slice(0, 10)}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
+function OrdersPanel({
+  token,
+  onPrintInvoice,
+  onPrintManifest,
+}: {
+  token: string;
+  onPrintInvoice: (order: OrderDTO) => void;
+  onPrintManifest: (orders: OrderDTO[]) => void;
+}) {
   const { data, isLoading, isError, refetch, isFetching } = useAdminOrders();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
@@ -424,7 +511,7 @@ function OrdersPanel({ token }: { token: string }) {
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
         <div className="relative flex-1">
           <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden />
           <Input
@@ -435,7 +522,7 @@ function OrdersPanel({ token }: { token: string }) {
             aria-label="Search orders"
           />
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <Select value={statusFilter} onValueChange={setStatusFilter}>
             <SelectTrigger className="h-11 w-[150px] rounded-xl border-border bg-card" aria-label="Filter by status">
               <SelectValue placeholder="Status" />
@@ -462,7 +549,6 @@ function OrdersPanel({ token }: { token: string }) {
           </Select>
           <Button
             variant="outline"
-            size="icon"
             onClick={() => refetch()}
             aria-label="Refresh orders"
             className="h-11 w-11 shrink-0 rounded-xl border-border bg-card"
@@ -470,6 +556,33 @@ function OrdersPanel({ token }: { token: string }) {
             <RefreshCcw className={cn("h-4 w-4", isFetching && "animate-spin")} aria-hidden />
           </Button>
         </div>
+      </div>
+
+      {/* Batch actions */}
+      <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-dashed border-border bg-card/50 p-3">
+        <p className="mr-auto text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+          {orders.length} order{orders.length === 1 ? "" : "s"} in view
+        </p>
+        <Button
+          variant="outline"
+          size="sm"
+          disabled={orders.length === 0}
+          onClick={() => onPrintManifest(orders)}
+          className="h-9 rounded-full border-border font-semibold hover:border-gold/40 hover:text-gold"
+        >
+          <FileText className="mr-1.5 h-3.5 w-3.5" aria-hidden />
+          Print manifest
+        </Button>
+        <Button
+          variant="outline"
+          size="sm"
+          disabled={orders.length === 0}
+          onClick={() => exportOrdersCsv(orders)}
+          className="h-9 rounded-full border-border font-semibold hover:border-gold/40 hover:text-gold"
+        >
+          <Download className="mr-1.5 h-3.5 w-3.5" aria-hidden />
+          Export CSV
+        </Button>
       </div>
 
       {isLoading ? (
@@ -544,6 +657,7 @@ function OrdersPanel({ token }: { token: string }) {
           order={selected}
           token={token}
           onClose={() => setSelectedId(null)}
+          onPrint={onPrintInvoice}
         />
       ) : null}
     </div>
@@ -558,8 +672,34 @@ export function AdminDashboard() {
   const { data: info } = useStoreInfo();
   const year = info?.shilohYear ?? STORE_INFO_DEFAULTS.shilohYear;
 
+  // ---- Printing (invoices & manifests) ----
+  const [printJob, setPrintJob] = useState<PrintJob | null>(null);
+
+  const runPrint = (job: PrintJob) => {
+    setPrintJob(job);
+    // Give React a beat to render the hidden print document first.
+    requestAnimationFrame(() =>
+      requestAnimationFrame(() => {
+        window.print();
+      })
+    );
+  };
+
+  useEffect(() => {
+    if (!printJob) return;
+    const clear = () => setPrintJob(null);
+    window.addEventListener("afterprint", clear);
+    // Fallback for browsers that don't fire afterprint reliably.
+    const t = setTimeout(clear, 60_000);
+    return () => {
+      window.removeEventListener("afterprint", clear);
+      clearTimeout(t);
+    };
+  }, [printJob]);
+
   return (
     <div className="min-h-dvh bg-background">
+      <div className="print-hidden-app">
       <header className="sticky top-0 z-40 border-b border-border bg-background/85 backdrop-blur-xl">
         <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-3 px-4 sm:px-6">
           <div className="flex items-center gap-3">
@@ -622,6 +762,13 @@ export function AdminDashboard() {
               Orders
             </TabsTrigger>
             <TabsTrigger
+              value="alerts"
+              className="rounded-full px-5 font-semibold data-[state=active]:bg-gold data-[state=active]:text-primary-foreground"
+            >
+              <BellRing className="mr-1.5 h-4 w-4" aria-hidden />
+              Alerts
+            </TabsTrigger>
+            <TabsTrigger
               value="settings"
               className="rounded-full px-5 font-semibold data-[state=active]:bg-gold data-[state=active]:text-primary-foreground"
             >
@@ -630,13 +777,26 @@ export function AdminDashboard() {
             </TabsTrigger>
           </TabsList>
           <TabsContent value="orders" className="mt-5">
-            <OrdersPanel token={token} />
+            <OrdersPanel
+              token={token}
+              onPrintInvoice={(order) => runPrint({ kind: "invoice", order })}
+              onPrintManifest={(orders) => runPrint({ kind: "manifest", orders })}
+            />
+          </TabsContent>
+          <TabsContent value="alerts" className="mt-5">
+            <AdminAlerts token={token} />
           </TabsContent>
           <TabsContent value="settings" className="mt-5">
             <AdminSettings token={token} />
           </TabsContent>
         </Tabs>
       </main>
+      </div>
+
+      {/* Hidden on screen — becomes the printable page via @media print */}
+      <div className="print-doc" aria-hidden>
+        {printJob ? <PrintRoot job={printJob} year={year} /> : null}
+      </div>
     </div>
   );
 }

@@ -38,6 +38,8 @@ export type StoreInfo = {
   shilohTagline: string; // e.g. "Far Above"
   shilohDates: string; // e.g. "December 8–13"
   shilohStart: string; // ISO date the countdown targets, e.g. "2026-12-08"
+  /** True when the admin activated Hubtel online checkout in the Back Office */
+  hubtelActive: boolean;
 };
 
 /** Fallbacks used while settings load or if they are missing */
@@ -65,6 +67,11 @@ export const PAYMENT_STATUS_LABELS: Record<PaymentStatus, string> = {
   paid: "Payment confirmed",
 };
 
+export const PAYMENT_METHOD_LABELS: Record<string, string> = {
+  hubtel: "Hubtel checkout",
+  "momo-manual": "Manual MoMo",
+};
+
 export type OrderItemDTO = {
   id: string;
   productId: string;
@@ -86,6 +93,8 @@ export type OrderDTO = {
   address: string | null;
   status: OrderStatus;
   paymentStatus: PaymentStatus;
+  paymentMethod: string | null; // hubtel | momo-manual | null
+  paidAt: string | null;
   subtotal: number;
   total: number;
   adminNotes: string | null;
