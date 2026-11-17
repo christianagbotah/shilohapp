@@ -8,8 +8,6 @@ import {
   ExternalLink,
   Loader2,
   PartyPopper,
-  Smartphone,
-  Timer,
 } from "lucide-react";
 import {
   Dialog,
@@ -24,9 +22,7 @@ import { useStoreInfo, fetchJson } from "@/hooks/use-store-data";
 import { useToast } from "@/hooks/use-toast";
 import { formatGhs } from "@/lib/format";
 
-type ClaimState = "idle" | "claiming" | "claimed";
 type PayState = "idle" | "starting" | "waiting" | "paid" | "error";
-type ManualState = "closed" | "open";
 
 export function OrderSuccessDialog() {
   const placedOrder = useUi((s) => s.placedOrder);
@@ -38,14 +34,11 @@ export function OrderSuccessDialog() {
   const { data: info } = useStoreInfo();
   const { toast } = useToast();
   const [copied, setCopied] = useState(false);
-  const [claim, setClaim] = useState<ClaimState>("idle");
   const [pay, setPay] = useState<PayState>("idle");
   const [payError, setPayError] = useState<string | null>(null);
-  const [manual, setManual] = useState<ManualState>("closed");
 
   const open = !!placedOrder;
   const code = placedOrder?.code ?? "";
-  const momoNumber = info?.momoNumber ?? "";
   const hubtelActive = info?.hubtelActive ?? false;
 
   // ---- Live payment polling (Hubtel callback may land while this is open) ----
@@ -99,51 +92,28 @@ export function OrderSuccessDialog() {
       // Give the poller a beat to catch the redirect target, then go.
       window.location.href = res.url;
     } catch (err) {
+      const message = err instanceof Error ? err.message : "Could not start payment.";
       setPay("error");
-      setPayError(err instanceof Error ? err.message : "Could not start payment.");
+      setPayError(
+        message.toLowerCase().includes("not configured")
+          ? "Online payment is being activated — our team will contact you to complete your payment securely."
+          : message
+      );
       toast({
         title: "Online payment unavailable",
-        description: "You can still pay manually with MoMo below.",
+        description: "Please try again shortly — our team will also follow up.",
         variant: "destructive",
       });
-    }
-  };
-
-  const markPaid = async () => {
-    if (!placedOrder) return;
-    setClaim("claiming");
-    try {
-      await fetchJson("/api/orders/claim", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ code: placedOrder.code, phone: placedOrder.phone }),
-      });
-      setClaim("claimed");
-      toast({
-        title: "Payment submitted",
-        description: "Our team will confirm your MoMo payment shortly.",
-      });
-    } catch (err) {
-      toast({
-        title: "Could not submit",
-        description: err instanceof Error ? err.message : "Please try again.",
-        variant: "destructive",
-      });
-      setClaim("idle");
     }
   };
 
   const close = () => {
     setPlacedOrder(null);
     setPlacedOrderNotice(null);
-    setClaim("idle");
     setCopied(false);
     setPay("idle");
     setPayError(null);
-    setManual("closed");
   };
-
-  const showManualMoMo = !hubtelActive || pay === "error" || manual === "open";
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && close()}>
@@ -162,9 +132,7 @@ export function OrderSuccessDialog() {
           <DialogDescription>
             {pay === "paid"
               ? `We've received ${formatGhs(placedOrder?.total ?? 0)}. A confirmation SMS is on its way.`
-              : `Thank you, ${placedOrder?.fullName.split(" ")[0]}. ${
-                  hubtelActive ? "Complete your secure payment below." : "Complete your payment below."
-                }`}
+              : `Thank you, ${placedOrder?.fullName.split(" ")[0]}. Complete your secure payment below.`}
           </DialogDescription>
         </DialogHeader>
 
@@ -172,7 +140,7 @@ export function OrderSuccessDialog() {
           <div className="flex flex-col gap-5 p-5">
             {placedOrderNotice ? (
               <p className="rounded-xl border border-amber-500/40 bg-amber-500/10 p-3 text-xs leading-relaxed text-amber-600 dark:text-amber-400">
-                {placedOrderNotice} — you can pay manually below in the meantime.
+                {placedOrderNotice}
               </p>
             ) : null}
 
@@ -196,9 +164,7 @@ export function OrderSuccessDialog() {
                 </Button>
               </div>
               <p className="mt-2 text-xs text-muted-foreground">
-                {hubtelActive
-                  ? "Keep this code to track your order any time"
-                  : "Use this exact code as your MoMo payment reference"}
+                Keep this code to track your order any time
               </p>
             </div>
 
@@ -241,77 +207,15 @@ export function OrderSuccessDialog() {
                       {payError}
                     </p>
                   ) : null}
-                  {manual === "closed" ? (
-                    <button
-                      type="button"
-                      onClick={() => setManual("open")}
-                      className="mx-auto text-xs font-semibold text-muted-foreground underline-offset-2 hover:text-gold hover:underline"
-                    >
-                      Or pay manually with MoMo
-                    </button>
-                  ) : null}
                 </div>
               )
-            ) : null}
-
-            {/* Manual MoMo instructions (default when Hubtel is off, fallback when on) */}
-            {showManualMoMo ? (
-              <div className="rounded-2xl border border-border bg-background/60 p-4">
-                <div className="flex items-center justify-between gap-2">
-                  <p className="flex items-center gap-2 text-sm font-semibold">
-                    <Smartphone className="h-4 w-4 text-gold" aria-hidden />
-                    Send {formatGhs(placedOrder.total)} to
-                  </p>
-                  <span className="rounded-full bg-gold/15 px-2.5 py-1 text-[0.62rem] font-bold uppercase tracking-wider text-gold">
-                    MTN MoMo
-                  </span>
-                </div>
-                <p className="mt-2 font-display text-2xl font-bold tabular-nums text-foreground">
-                  {momoNumber}
-                </p>
-                <p className="text-xs text-muted-foreground">{info?.momoName}</p>
-                <ol className="mt-3 space-y-1.5 text-sm text-muted-foreground">
-                  <li>
-                    1. Dial <span className="font-bold text-gold">*170#</span> → Transfer Money → MoMo
-                    User
-                  </li>
-                  <li>
-                    2. Enter the number and amount:{" "}
-                    <span className="font-semibold text-foreground">{formatGhs(placedOrder.total)}</span>
-                  </li>
-                  <li>
-                    3. Reference:{" "}
-                    <span className="rounded bg-gold/15 px-1.5 py-0.5 font-mono text-xs font-bold text-gold">
-                      {code}
-                    </span>
-                  </li>
-                </ol>
-              </div>
-            ) : null}
-
-            {/* I have paid (manual flow) */}
-            {showManualMoMo && pay !== "paid" ? (
-              claim === "claimed" ? (
-                <p className="flex items-center justify-center gap-2 rounded-2xl border border-gold/40 bg-gold/10 p-4 text-center text-sm font-semibold text-gold">
-                  <BadgeCheck className="h-5 w-5 shrink-0" aria-hidden />
-                  Payment submitted — we&apos;ll confirm it shortly and call you.
-                </p>
-              ) : (
-                <Button
-                  onClick={markPaid}
-                  disabled={claim === "claiming"}
-                  variant="outline"
-                  className="h-12 w-full rounded-full border-border font-semibold hover:border-gold/40 hover:text-gold"
-                >
-                  {claim === "claiming" ? (
-                    <Timer className="mr-2 h-4.5 w-4.5 animate-pulse" aria-hidden />
-                  ) : (
-                    <BadgeCheck className="mr-2 h-4.5 w-4.5" aria-hidden />
-                  )}
-                  {claim === "claiming" ? "Submitting…" : "I Have Paid"}
-                </Button>
-              )
-            ) : null}
+            ) : (
+              <p className="rounded-2xl border border-gold/40 bg-gold/10 p-4 text-center text-sm leading-relaxed text-muted-foreground">
+                Our team will contact you on{" "}
+                <span className="font-semibold text-foreground">{placedOrder.phone}</span> to
+                complete your payment securely via Hubtel and arrange delivery or pickup.
+              </p>
+            )}
 
             <div className="flex gap-2">
               <Button

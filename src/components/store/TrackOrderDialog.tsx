@@ -167,6 +167,11 @@ function OrderCard({ order, hubtelActive }: { order: OrderDTO; hubtelActive: boo
             </p>
           ) : null}
         </div>
+      ) : !cancelled && order.paymentStatus !== "paid" ? (
+        <p className="mt-3 rounded-xl border border-gold/30 bg-gold/10 p-3 text-xs leading-relaxed text-muted-foreground">
+          Payment will be collected securely via Hubtel — our team will contact you on{" "}
+          <span className="font-semibold text-foreground">{order.phone}</span> to complete it.
+        </p>
       ) : null}
 
       <ul className="mt-2 space-y-1.5 border-t border-border pt-3">

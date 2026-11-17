@@ -8,7 +8,6 @@ import { TintableProductImage } from "@/components/store/TintableProductImage";
 import { useCart, cartTotal } from "@/store/cart";
 import { useUi } from "@/store/ui";
 import { useMounted } from "@/hooks/use-mounted";
-import { useStoreInfo } from "@/hooks/use-store-data";
 import { formatGhs } from "@/lib/format";
 import { PRODUCT_TYPE_LABELS } from "@/lib/types";
 
@@ -21,8 +20,6 @@ export function CartDrawer() {
   const setCartOpen = useUi((s) => s.setCartOpen);
   const setCheckoutOpen = useUi((s) => s.setCheckoutOpen);
   const mounted = useMounted();
-  const { data: info } = useStoreInfo();
-  const hubtelActive = info?.hubtelActive ?? false;
 
   const total = mounted ? cartTotal(items) : 0;
 
@@ -159,9 +156,8 @@ export function CartDrawer() {
               </div>
               <Separator className="bg-border" />
               <p className="text-xs leading-relaxed text-muted-foreground">
-                {hubtelActive
-                  ? "Checkout takes you to Hubtel's secure page — approve the MoMo prompt and your order is confirmed instantly."
-                  : "Delivery is arranged when our team calls you after payment — pay with MoMo using your order code as reference."}
+                Checkout takes you to Hubtel&apos;s secure page — approve the prompt on your phone
+                and your order is confirmed instantly.
               </p>
               <Button
                 onClick={goCheckout}

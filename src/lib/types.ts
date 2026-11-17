@@ -35,9 +35,6 @@ export type AdminProductDTO = ProductDTO & {
 };
 
 export type StoreInfo = {
-  momoNumber: string;
-  momoName: string;
-  momoNetwork: string;
   announcement: string;
   /** Event branding — editable every year from the Back Office */
   shilohYear: string; // e.g. "2026"

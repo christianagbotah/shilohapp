@@ -42,7 +42,7 @@ export async function generateMetadata(): Promise<Metadata> {
     openGraph: {
       title: `Shiloh ${year} — ${tagline}`,
       description:
-        "T-shirts, lacostes, jerseys & caps for adults and kids. Order in seconds, pay with MoMo anywhere in Ghana.",
+        "T-shirts, lacostes, jerseys & caps for adults and kids. Order in seconds and pay securely with MoMo or card via Hubtel, anywhere in Ghana.",
       type: "website",
     },
   };

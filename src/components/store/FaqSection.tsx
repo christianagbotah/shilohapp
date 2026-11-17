@@ -1,20 +1,22 @@
 "use client";
 
-import { useMemo } from "react";
 import {
   Accordion,
   AccordionContent,
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
-import { useStoreInfo } from "@/hooks/use-store-data";
 
 type Faq = { q: string; a: string };
 
-const BASE_FAQS: Faq[] = [
+const FAQS: Faq[] = [
   {
     q: "When will I receive my order?",
     a: "Orders are reviewed daily by our team. Once your payment is confirmed, we call you on the number you provided to arrange delivery or pickup. Order early — everything is delivered before Dec 8, Shiloh week.",
+  },
+  {
+    q: "How exactly do I pay?",
+    a: "Tap Pay Now at checkout and you'll be taken to Hubtel's secure payment page — approve the prompt with MTN MoMo, Telecel Cash, AirtelTigo Money or a card. Your order confirms automatically and you get an SMS with the details.",
   },
   {
     q: "What sizes are available?",
@@ -35,23 +37,6 @@ const BASE_FAQS: Faq[] = [
 ];
 
 export function FaqSection() {
-  const { data: info } = useStoreInfo();
-  const hubtelActive = info?.hubtelActive ?? false;
-
-  const faqs = useMemo<Faq[]>(() => {
-    const paymentFaq: Faq = hubtelActive
-      ? {
-          q: "How exactly do I pay?",
-          a: "Tap Pay Now at checkout and you'll be taken to Hubtel's secure payment page — approve the prompt with MTN MoMo, Telecel Cash, AirtelTigo Money or a card. Your order confirms automatically and you get an SMS with the details. You can also pay manually to our MTN MoMo line with your order code as reference.",
-        }
-      : {
-          q: "How exactly do I pay?",
-          a: "After placing your order you receive a unique code like SHL-7K2P9Q. Send the exact total to our MTN MoMo line using that code as the payment reference. MTN, Telecel and AirtelTigo users can all send to the line.",
-        };
-    // Payment FAQ always sits second, right after delivery timing.
-    return [BASE_FAQS[0], paymentFaq, ...BASE_FAQS.slice(1)];
-  }, [hubtelActive]);
-
   return (
     <section id="faq" className="border-t border-border bg-secondary/40">
       <div className="mx-auto max-w-3xl scroll-mt-24 px-4 py-14 sm:px-6 sm:py-20">
@@ -62,7 +47,7 @@ export function FaqSection() {
           </h2>
         </div>
         <Accordion type="single" collapsible className="w-full">
-          {faqs.map((f, i) => (
+          {FAQS.map((f, i) => (
             <AccordionItem key={i} value={`item-${i}`} className="border-border">
               <AccordionTrigger className="text-left font-display text-base font-semibold hover:text-gold hover:no-underline sm:text-lg">
                 {f.q}

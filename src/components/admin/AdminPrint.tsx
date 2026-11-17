@@ -104,7 +104,7 @@ export function InvoiceDoc({ order, year }: { order: OrderDTO; year: string }) {
           <p style={{ margin: "6px 0 0" }}>
             {order.paymentMethod
               ? `Paid via ${PAYMENT_METHOD_LABELS[order.paymentMethod] ?? order.paymentMethod}${order.paidAt ? ` — ${fmtDate(order.paidAt)}` : ""}`
-              : "Payment method: manual MoMo / not set"}
+              : "Payment method: not set (awaiting Hubtel payment)"}
           </p>
         </div>
       </section>

@@ -8,8 +8,6 @@ export const dynamic = "force-dynamic";
 
 /** Secrets are never returned — only whether they are configured. */
 const settingsSchema = z.object({
-  momoNumber: z.string().trim().min(4).max(25).optional(),
-  momoName: z.string().trim().min(2).max(60).optional(),
   announcement: z.string().trim().max(160).optional(),
   shilohYear: z
     .string()
@@ -61,8 +59,6 @@ export async function GET(req: NextRequest) {
   }
   try {
     const keys = [
-      "momo_number",
-      "momo_name",
       "announcement",
       "shiloh_year",
       "shiloh_tagline",
@@ -93,8 +89,6 @@ export async function GET(req: NextRequest) {
     const map = new Map(rows.map((r) => [r.key, r.value]));
 
     return NextResponse.json({
-      momoNumber: map.get("momo_number") ?? "",
-      momoName: map.get("momo_name") ?? "",
       announcement: map.get("announcement") ?? "",
       shilohYear: map.get("shiloh_year") ?? "2026",
       shilohTagline: map.get("shiloh_tagline") ?? "Far Above",
@@ -152,8 +146,6 @@ export async function PATCH(req: NextRequest) {
     const updates: Array<{ key: string; value: string }> = [];
     const put = (key: string, value: string) => updates.push({ key, value });
 
-    if (d.momoNumber !== undefined) put("momo_number", d.momoNumber);
-    if (d.momoName !== undefined) put("momo_name", d.momoName);
     if (d.announcement !== undefined) put("announcement", d.announcement);
     if (d.shilohYear !== undefined) put("shiloh_year", d.shilohYear);
     if (d.shilohTagline !== undefined) put("shiloh_tagline", d.shilohTagline);

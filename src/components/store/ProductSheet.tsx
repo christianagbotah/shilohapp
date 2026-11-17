@@ -10,7 +10,6 @@ import { useUi } from "@/store/ui";
 import { formatGhs } from "@/lib/format";
 import { PRODUCT_TYPE_LABELS, type ProductDTO } from "@/lib/types";
 import { ProductGallery } from "@/components/store/ProductGallery";
-import { useStoreInfo } from "@/hooks/use-store-data";
 import { cn } from "@/lib/utils";
 
 function Options({ product }: { product: ProductDTO }) {
@@ -18,8 +17,6 @@ function Options({ product }: { product: ProductDTO }) {
   const setCartOpen = useUi((s) => s.setCartOpen);
   const addItem = useCart((s) => s.addItem);
   const { toast } = useToast();
-  const { data: storeInfo } = useStoreInfo();
-  const hubtelActive = storeInfo?.hubtelActive ?? false;
 
   const [color, setColor] = useState(product.colors[0]?.name ?? "");
   const [size, setSize] = useState<string | null>(null);
@@ -208,9 +205,8 @@ function Options({ product }: { product: ProductDTO }) {
           </Button>
         </div>
         <p className="mt-2.5 text-center text-xs leading-relaxed text-muted-foreground">
-          {hubtelActive
-            ? "After placing your order you'll pay on Hubtel's secure checkout — MTN MoMo, Telecel Cash, AT Money and cards accepted."
-            : "Pay with Mobile Money after placing your order — you'll receive a unique order code to use as your payment reference."}
+          After placing your order you&apos;ll pay on Hubtel&apos;s secure checkout — MTN MoMo,
+          Telecel Cash, AT Money and cards accepted.
         </p>
       </div>
     </>

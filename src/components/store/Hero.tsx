@@ -106,7 +106,6 @@ export function Hero() {
   const tagline = info?.shilohTagline ?? STORE_INFO_DEFAULTS.shilohTagline;
   const dates = info?.shilohDates ?? STORE_INFO_DEFAULTS.shilohDates;
   const startIso = info?.shilohStart ?? STORE_INFO_DEFAULTS.shilohStart;
-  const hubtelActive = info?.hubtelActive ?? false;
 
   return (
     <section id="top" className="hero-radial relative overflow-hidden">
@@ -140,10 +139,7 @@ export function Hero() {
           >
             The official <span className="font-semibold text-foreground">Shiloh {year}</span> merch —
             premium t-shirts, lacostes, jerseys and caps for adults and kids. Order in under a
-            minute,{" "}
-            {hubtelActive
-              ? "pay instantly with MoMo or card, anywhere in Ghana."
-              : "pay with Mobile Money, anywhere in Ghana."}
+            minute, pay instantly with MoMo or card, anywhere in Ghana.
           </motion.p>
 
           <motion.div
@@ -165,7 +161,7 @@ export function Hero() {
               variant="outline"
               className="h-12 rounded-full border-border px-6 text-base font-semibold hover:border-gold/40 hover:bg-secondary hover:text-gold"
             >
-              <a href="#payment">{hubtelActive ? "Pay in One Tap" : "Pay with MoMo"}</a>
+              <a href="#payment">Pay in One Tap</a>
             </Button>
           </motion.div>
 
@@ -186,8 +182,7 @@ export function Hero() {
               <ShieldCheck className="h-4 w-4 text-gold" aria-hidden /> 100% official merch
             </li>
             <li className="flex items-center gap-2">
-              <Smartphone className="h-4 w-4 text-gold" aria-hidden />{" "}
-              {hubtelActive ? "Secure MoMo & card payment" : "MoMo payment"}
+              <Smartphone className="h-4 w-4 text-gold" aria-hidden /> Secure MoMo &amp; card payment
             </li>
             <li className="flex items-center gap-2">
               <Truck className="h-4 w-4 text-gold" aria-hidden /> Delivery across Ghana

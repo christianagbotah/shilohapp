@@ -7,9 +7,6 @@ export const dynamic = "force-dynamic";
 export async function GET() {
   try {
     const [
-      momoNumber,
-      momoName,
-      momoNetwork,
       announcement,
       shilohYear,
       shilohTagline,
@@ -19,9 +16,6 @@ export async function GET() {
       hubtelClientSecret,
       hubtelMerchantNumber,
     ] = await Promise.all([
-      getSetting("momo_number"),
-      getSetting("momo_name"),
-      getSetting("momo_network"),
       getSetting("announcement"),
       getSetting("shiloh_year"),
       getSetting("shiloh_tagline"),
@@ -32,9 +26,6 @@ export async function GET() {
       getSetting("hubtel_merchant_number"),
     ]);
     return NextResponse.json({
-      momoNumber: momoNumber ?? "",
-      momoName: momoName ?? "",
-      momoNetwork: momoNetwork ?? "MTN MoMo",
       announcement: announcement ?? "",
       shilohYear: shilohYear ?? STORE_INFO_DEFAULTS.shilohYear,
       shilohTagline: shilohTagline ?? STORE_INFO_DEFAULTS.shilohTagline,

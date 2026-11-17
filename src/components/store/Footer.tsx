@@ -62,9 +62,6 @@ export function Footer() {
                   Track Your Order
                 </button>
               </li>
-              {info?.momoNumber ? (
-                <li className="tabular-nums">MoMo: {info.momoNumber}</li>
-              ) : null}
               <li>
                 <button
                   type="button"

@@ -26,8 +26,6 @@ import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 
 type SettingsResponse = {
-  momoNumber: string;
-  momoName: string;
   announcement: string;
   shilohYear: string;
   shilohTagline: string;
@@ -147,8 +145,6 @@ export function AdminSettings({ token }: { token: string }) {
   const [savingKey, setSavingKey] = useState<string | null>(null);
 
   // Branding / store
-  const [momoNumber, setMomoNumber] = useState("");
-  const [momoName, setMomoName] = useState("");
   const [announcement, setAnnouncement] = useState("");
   const [shilohYear, setShilohYear] = useState("");
   const [shilohTagline, setShilohTagline] = useState("");
@@ -195,8 +191,6 @@ export function AdminSettings({ token }: { token: string }) {
     })
       .then((res) => {
         if (cancelled) return;
-        setMomoNumber(res.momoNumber);
-        setMomoName(res.momoName);
         setAnnouncement(res.announcement);
         setShilohYear(res.shilohYear);
         setShilohTagline(res.shilohTagline);
@@ -759,33 +753,13 @@ export function AdminSettings({ token }: { token: string }) {
         </Button>
       </CardShell>
 
-      {/* ---------------- Storefront / MoMo ---------------- */}
+      {/* ---------------- Storefront ---------------- */}
       <CardShell
         icon={Wallet}
-        title="Payment & Storefront"
-        subtitle="Shown to customers when they pay manually via MoMo"
-        status={{ label: "Manual MoMo", ok: true }}
+        title="Storefront"
+        subtitle="Customer-facing store settings"
+        status={{ label: "Live", ok: true }}
       >
-        <Field id="momo-number" label="MTN MoMo number (receives manual payments)">
-          <Input
-            id="momo-number"
-            value={momoNumber}
-            onChange={(e) => setMomoNumber(e.target.value)}
-            placeholder="055 123 4567"
-            className={`${inputCls} font-mono text-base`}
-            maxLength={25}
-          />
-        </Field>
-        <Field id="momo-name" label="MoMo account name">
-          <Input
-            id="momo-name"
-            value={momoName}
-            onChange={(e) => setMomoName(e.target.value)}
-            placeholder="Shiloh Merch GH"
-            className={inputCls}
-            maxLength={60}
-          />
-        </Field>
         <Field id="announcement" label="Announcement bar text" hint="Leave empty to hide the top bar.">
           <Input
             id="announcement"
@@ -799,8 +773,6 @@ export function AdminSettings({ token }: { token: string }) {
         <Button
           onClick={() =>
             save("store", {
-              momoNumber: momoNumber.trim(),
-              momoName: momoName.trim(),
               announcement: announcement.trim(),
             })
           }

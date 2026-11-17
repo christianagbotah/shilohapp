@@ -285,7 +285,7 @@ function OrderDetail({
               </li>
             ))}
             <li className="flex items-center justify-between p-3.5">
-              <span className="text-sm font-semibold">Total (MoMo reference: {order.code})</span>
+              <span className="text-sm font-semibold">Total — order {order.code}</span>
               <span className="font-display text-lg font-bold text-gold">{formatGhs(order.total)}</span>
             </li>
           </ul>
@@ -408,7 +408,7 @@ function OrderDetail({
             id="admin-notes"
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
-            placeholder="Follow-up details, delivery arrangement, MoMo confirmation time…"
+            placeholder="Follow-up details, delivery arrangement, payment confirmation time…"
             className="min-h-[72px] rounded-xl border-border bg-background/60"
             maxLength={500}
           />

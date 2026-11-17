@@ -484,7 +484,7 @@ function itemsSummary(order: NotifyOrder): string {
 export function smsOrderPlacedCustomer(order: NotifyOrder): string {
   return (
     `Shiloh 2026: Order ${order.code} received. Total ${formatGhs(order.total)}. ` +
-    "Complete your payment to confirm the order. Thank you!"
+    "Pay securely via the Hubtel checkout to confirm your order. Thank you!"
   );
 }
 
