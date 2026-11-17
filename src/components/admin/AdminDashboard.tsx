@@ -5,6 +5,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   ArrowLeft,
   Banknote,
+  BarChart3,
   BellRing,
   CheckCircle2,
   ChevronRight,
@@ -60,6 +61,7 @@ import { cn } from "@/lib/utils";
 import { AdminSettings } from "@/components/admin/AdminSettings";
 import { AdminAlerts } from "@/components/admin/AdminAlerts";
 import { AdminProducts } from "@/components/admin/AdminProducts";
+import { AdminInsights } from "@/components/admin/AdminInsights";
 import { PrintRoot, type PrintJob } from "@/components/admin/AdminPrint";
 
 // Ensure lucide icon typing stays consistent for StatCard
@@ -342,6 +344,12 @@ function OrderDetail({
 
           <p className="mt-2 text-[0.65rem] font-semibold uppercase tracking-widest text-muted-foreground">
             Order status
+          </p>
+          <p className="text-xs leading-relaxed text-muted-foreground">
+            Marking an order <span className="font-semibold text-foreground">contacted</span>,{" "}
+            <span className="font-semibold text-foreground">fulfilled</span> or{" "}
+            <span className="font-semibold text-foreground">cancelled</span> texts the customer
+            automatically (see Settings → SMS alerts).
           </p>
           <div className="flex flex-wrap gap-2">
             {order.status !== "fulfilled" && order.status !== "cancelled" ? (
@@ -669,7 +677,7 @@ export function AdminDashboard() {
   const token = useUi((s) => s.adminToken) ?? "";
   const setAdminToken = useUi((s) => s.setAdminToken);
   const setView = useUi((s) => s.setView);
-  const { data } = useAdminOrders();
+  const { data, isLoading } = useAdminOrders();
   const { data: info } = useStoreInfo();
   const year = info?.shilohYear ?? STORE_INFO_DEFAULTS.shilohYear;
 
@@ -708,7 +716,7 @@ export function AdminDashboard() {
             <div className="leading-none">
               <p className="font-display text-base font-bold">Shiloh {year} — Back Office</p>
               <p className="mt-1 text-[0.62rem] font-semibold uppercase tracking-[0.22em] text-muted-foreground">
-                Orders · Catalogue · Payments
+                Orders · Insights · Catalogue · Payments
               </p>
             </div>
           </div>
@@ -763,6 +771,13 @@ export function AdminDashboard() {
               Orders
             </TabsTrigger>
             <TabsTrigger
+              value="insights"
+              className="rounded-full px-5 font-semibold data-[state=active]:bg-gold data-[state=active]:text-primary-foreground"
+            >
+              <BarChart3 className="mr-1.5 h-4 w-4" aria-hidden />
+              Insights
+            </TabsTrigger>
+            <TabsTrigger
               value="products"
               className="rounded-full px-5 font-semibold data-[state=active]:bg-gold data-[state=active]:text-primary-foreground"
             >
@@ -790,6 +805,9 @@ export function AdminDashboard() {
               onPrintInvoice={(order) => runPrint({ kind: "invoice", order })}
               onPrintManifest={(orders) => runPrint({ kind: "manifest", orders })}
             />
+          </TabsContent>
+          <TabsContent value="insights" className="mt-5">
+            <AdminInsights orders={data?.orders ?? null} loading={isLoading} />
           </TabsContent>
           <TabsContent value="products" className="mt-5">
             <AdminProducts token={token} />

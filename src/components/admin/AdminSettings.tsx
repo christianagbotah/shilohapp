@@ -46,6 +46,7 @@ type SettingsResponse = {
     adminPhone: string;
     adminEmail: string;
     notifyCustomer: boolean;
+    notifyStatus: boolean;
     notifyAdmin: boolean;
   };
   email: {
@@ -171,6 +172,7 @@ export function AdminSettings({ token }: { token: string }) {
   const [adminPhone, setAdminPhone] = useState("");
   const [adminEmail, setAdminEmail] = useState("");
   const [notifyCustomerSms, setNotifyCustomerSms] = useState(true);
+  const [notifyStatusSms, setNotifyStatusSms] = useState(true);
   const [notifyAdminSms, setNotifyAdminSms] = useState(true);
 
   // Email
@@ -208,6 +210,7 @@ export function AdminSettings({ token }: { token: string }) {
         setAdminPhone(res.sms.adminPhone);
         setAdminEmail(res.sms.adminEmail);
         setNotifyCustomerSms(res.sms.notifyCustomer);
+        setNotifyStatusSms(res.sms.notifyStatus);
         setNotifyAdminSms(res.sms.notifyAdmin);
         setSmtpHost(res.email.host);
         setSmtpPort(res.email.port || "587");
@@ -514,6 +517,21 @@ export function AdminSettings({ token }: { token: string }) {
             />
           </div>
           <div className="flex items-center justify-between gap-3">
+            <div className="min-w-0">
+              <Label htmlFor="notify-status-sms" className="text-sm font-semibold">
+                SMS the customer on status changes
+              </Label>
+              <p className="mt-0.5 text-xs text-muted-foreground">
+                Sent automatically when an order is marked contacted, fulfilled or cancelled.
+              </p>
+            </div>
+            <Switch
+              id="notify-status-sms"
+              checked={notifyStatusSms}
+              onCheckedChange={setNotifyStatusSms}
+            />
+          </div>
+          <div className="flex items-center justify-between gap-3">
             <Label htmlFor="notify-admin-sms" className="text-sm font-semibold">
               SMS the admin phone on order &amp; payment
             </Label>
@@ -533,6 +551,7 @@ export function AdminSettings({ token }: { token: string }) {
               adminPhone: adminPhone.trim(),
               adminEmail: adminEmail.trim(),
               notifyCustomerSms,
+              notifyStatusSms,
               notifyAdminSms,
             })
           }

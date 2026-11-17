@@ -36,6 +36,7 @@ const settingsSchema = z.object({
   adminEmail: z.string().trim().max(120).optional(),
   // Toggles
   notifyCustomerSms: z.boolean().optional(),
+  notifyStatusSms: z.boolean().optional(),
   notifyAdminSms: z.boolean().optional(),
   notifyAdminEmail: z.boolean().optional(),
   // SMTP email alerts
@@ -75,6 +76,7 @@ export async function GET(req: NextRequest) {
       "admin_phone",
       "admin_email",
       "notify_customer_sms",
+      "notify_customer_status_sms",
       "notify_admin_sms",
       "notify_admin_email",
       "smtp_host",
@@ -113,6 +115,7 @@ export async function GET(req: NextRequest) {
         adminPhone: map.get("admin_phone") ?? "",
         adminEmail: map.get("admin_email") ?? "",
         notifyCustomer: bool(map.get("notify_customer_sms") ?? null, true),
+        notifyStatus: bool(map.get("notify_customer_status_sms") ?? null, true),
         notifyAdmin: bool(map.get("notify_admin_sms") ?? null, true),
       },
       email: {
@@ -172,6 +175,8 @@ export async function PATCH(req: NextRequest) {
     // Toggles
     if (d.notifyCustomerSms !== undefined)
       put("notify_customer_sms", d.notifyCustomerSms ? "1" : "0");
+    if (d.notifyStatusSms !== undefined)
+      put("notify_customer_status_sms", d.notifyStatusSms ? "1" : "0");
     if (d.notifyAdminSms !== undefined) put("notify_admin_sms", d.notifyAdminSms ? "1" : "0");
     if (d.notifyAdminEmail !== undefined)
       put("notify_admin_email", d.notifyAdminEmail ? "1" : "0");

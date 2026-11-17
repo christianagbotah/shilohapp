@@ -17,6 +17,8 @@ import {
   smsOrderPlacedCustomer,
   smsPaymentConfirmedAdmin,
   smsPaymentConfirmedCustomer,
+  smsStatusUpdateCustomer,
+  type NotifiableOrderStatus,
   type NotifyOrder,
 } from "@/lib/hubtel";
 
@@ -25,6 +27,7 @@ type Purpose =
   | "order_placed_admin"
   | "payment_confirmed_customer"
   | "payment_confirmed_admin"
+  | "order_status_customer"
   | "test";
 
 type LogInput = {
@@ -268,6 +271,22 @@ export async function notifyOrderPlaced(order: NotifyOrder): Promise<void> {
   }
 
   await Promise.allSettled(jobs);
+}
+
+/** Called when the back office moves an order to contacted / fulfilled / cancelled. */
+export async function notifyOrderStatusChanged(
+  order: NotifyOrder,
+  status: NotifiableOrderStatus
+): Promise<void> {
+  const statusSmsOn = await flag("notify_customer_status_sms", true);
+  if (!statusSmsOn) return;
+
+  await sendSms(
+    order.phone,
+    smsStatusUpdateCustomer(order, status),
+    "order_status_customer",
+    order.id
+  );
 }
 
 /** Called when a Hubtel payment is verified (callback or polling). */

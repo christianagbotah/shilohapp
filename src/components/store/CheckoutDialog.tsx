@@ -18,6 +18,7 @@ import { useCart, cartTotal } from "@/store/cart";
 import { useUi } from "@/store/ui";
 import { useMounted } from "@/hooks/use-mounted";
 import { fetchJson } from "@/hooks/use-store-data";
+import { rememberOrder } from "@/lib/order-history";
 import { formatGhs } from "@/lib/format";
 import type { OrderDTO } from "@/lib/types";
 
@@ -86,6 +87,15 @@ export function CheckoutDialog() {
       } catch {
         /* private mode — ignore */
       }
+      // Also keep a device history so "Track your order" can offer one-tap
+      // lookup of recent orders without memorising codes.
+      rememberOrder({
+        code: res.order.code,
+        phone: normalized,
+        total,
+        itemCount,
+        placedAt: new Date().toISOString(),
+      });
 
       // One tap: order is created, hand the customer straight to Hubtel's
       // secure checkout. If Hubtel can't start a session we keep the order

@@ -33,6 +33,7 @@ const PURPOSE_LABELS: Record<string, string> = {
   order_placed_admin: "Order placed → admin",
   payment_confirmed_customer: "Payment confirmed → customer",
   payment_confirmed_admin: "Payment confirmed → admin",
+  order_status_customer: "Status update → customer",
   test: "Test message",
 };
 

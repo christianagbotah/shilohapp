@@ -18,14 +18,25 @@ export async function generateMetadata(): Promise<Metadata> {
   // Year + tagline come from the Back Office settings so they can be updated every year.
   let year = "2026";
   let tagline = "Far Above";
+  let siteUrl = "";
   try {
-    const [y, t] = await Promise.all([getSetting("shiloh_year"), getSetting("shiloh_tagline")]);
+    const [y, t, u] = await Promise.all([
+      getSetting("shiloh_year"),
+      getSetting("shiloh_tagline"),
+      getSetting("site_url"),
+    ]);
     if (y) year = y;
     if (t) tagline = t;
+    if (u) siteUrl = u;
   } catch {
     // DB not initialised yet — keep defaults
   }
+  // Absolute OG image URLs are required by WhatsApp / Facebook / X crawlers.
+  const metadataBase = siteUrl
+    ? new URL(siteUrl)
+    : new URL("http://localhost:3000");
   return {
+    metadataBase,
     title: `Shiloh ${year} — ${tagline} | Official Merch Store | Winners Chapel International`,
     description: `Official Shiloh ${year} “${tagline}” convocation merchandise for the Winners' family worldwide. T-shirts, lacostes, jerseys and caps for adults & kids. Order in seconds and pay with MTN Mobile Money across Ghana.`,
     keywords: [
@@ -44,6 +55,21 @@ export async function generateMetadata(): Promise<Metadata> {
       description:
         "T-shirts, lacostes, jerseys & caps for adults and kids. Order in seconds and pay securely with MoMo or card via Hubtel, anywhere in Ghana.",
       type: "website",
+      images: [
+        {
+          url: "/og-shiloh.jpg",
+          width: 1344,
+          height: 768,
+          alt: `Shiloh ${year} “${tagline}” — official merch: tees, lacostes, jerseys & caps`,
+        },
+      ],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: `Shiloh ${year} — ${tagline}`,
+      description:
+        "Official Shiloh merch — tees, lacostes, jerseys & caps. Pay securely with MoMo or card via Hubtel.",
+      images: ["/og-shiloh.jpg"],
     },
   };
 }

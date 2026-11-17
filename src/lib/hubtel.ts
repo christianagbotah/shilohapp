@@ -509,6 +509,32 @@ export function smsPaymentConfirmedAdmin(order: NotifyOrder): string {
   );
 }
 
+/** Statuses that trigger an automatic customer SMS when set from the back office. */
+export type NotifiableOrderStatus = "contacted" | "fulfilled" | "cancelled";
+
+export function smsStatusUpdateCustomer(
+  order: NotifyOrder,
+  status: NotifiableOrderStatus
+): string {
+  switch (status) {
+    case "contacted":
+      return (
+        `Shiloh 2026: About order ${order.code} — our team tried reaching you. ` +
+        "Please call us back to arrange delivery or pickup. Thank you!"
+      );
+    case "fulfilled":
+      return (
+        `Shiloh 2026: Good news — order ${order.code} is fulfilled! ` +
+        "Your merch is ready. Thank you for shopping with us!"
+      );
+    case "cancelled":
+      return (
+        `Shiloh 2026: Order ${order.code} has been cancelled. ` +
+        "If this is unexpected, please contact the merch team. Thank you!"
+      );
+  }
+}
+
 // ---------------------------------------------------------------------------
 // Admin "test connection" helper
 // ---------------------------------------------------------------------------

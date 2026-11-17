@@ -6,6 +6,7 @@ import {
   CircleCheck,
   CircleDashed,
   ExternalLink,
+  History,
   Loader2,
   PackageSearch,
   Search,
@@ -21,6 +22,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useUi } from "@/store/ui";
 import { fetchJson, useStoreInfo } from "@/hooks/use-store-data";
+import { clearOrderHistory, getOrderHistory, type HistoryEntry } from "@/lib/order-history";
 import { formatGhs } from "@/lib/format";
 import { ORDER_STATUS_LABELS, PAYMENT_STATUS_LABELS, type OrderDTO } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -208,10 +210,12 @@ export function TrackOrderDialog() {
   const [searched, setSearched] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [orders, setOrders] = useState<OrderDTO[]>([]);
+  const [history, setHistory] = useState<HistoryEntry[]>([]);
 
   useEffect(() => {
     if (trackOpen) {
       setQuery(prefill);
+      setHistory(getOrderHistory());
       if (prefill) {
         // auto-search when opened with a prefill
         void search(prefill);
@@ -220,6 +224,7 @@ export function TrackOrderDialog() {
       setSearched(false);
       setError(null);
       setOrders([]);
+      setHistory([]);
     }
   }, [trackOpen, prefill]);
 
@@ -290,6 +295,56 @@ export function TrackOrderDialog() {
             <p className="rounded-xl border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive" role="alert">
               {error}
             </p>
+          ) : null}
+
+          {/* Orders placed on this device — one tap to re-check their status */}
+          {!searched && !loading && history.length > 0 ? (
+            <div className="rounded-2xl border border-border bg-background/60 p-4">
+              <div className="flex items-center justify-between gap-2">
+                <p className="flex items-center gap-2 text-[0.68rem] font-semibold uppercase tracking-widest text-muted-foreground">
+                  <History className="h-3.5 w-3.5" aria-hidden /> Recent orders on this device
+                </p>
+                <button
+                  type="button"
+                  onClick={() => {
+                    clearOrderHistory();
+                    setHistory([]);
+                  }}
+                  className="cursor-pointer rounded text-xs text-muted-foreground hover:text-destructive hover:underline"
+                >
+                  Forget
+                </button>
+              </div>
+              <ul className="mt-3 space-y-2">
+                {history.map((h) => (
+                  <li key={h.code}>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setQuery(h.phone);
+                        void search(h.phone);
+                      }}
+                      className="card-hover flex w-full cursor-pointer items-center justify-between gap-3 rounded-xl border border-border bg-card p-3 text-left"
+                    >
+                      <div className="min-w-0">
+                        <p className="font-mono text-sm font-bold tracking-wider text-gold">{h.code}</p>
+                        <p className="mt-0.5 text-xs text-muted-foreground">
+                          {new Date(h.placedAt).toLocaleDateString("en-GB", {
+                            day: "numeric",
+                            month: "short",
+                          })}{" "}
+                          • {h.itemCount} item{h.itemCount === 1 ? "" : "s"}
+                        </p>
+                      </div>
+                      <span className="shrink-0 text-sm font-semibold">{formatGhs(h.total)}</span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+              <p className="mt-2.5 text-[0.65rem] leading-relaxed text-muted-foreground">
+                Saved only on this device — tap one to see its latest status and pay if needed.
+              </p>
+            </div>
           ) : null}
 
           {searched && !error && orders.length === 0 ? (
