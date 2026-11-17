@@ -5,6 +5,7 @@ import { useUi } from "@/store/ui";
 import { Header } from "@/components/store/Header";
 import { Hero } from "@/components/store/Hero";
 import { Marquee } from "@/components/store/Marquee";
+import { OutfitCarousel } from "@/components/store/OutfitCarousel";
 import { ShopSection } from "@/components/store/ShopSection";
 import { HowItWorks } from "@/components/store/HowItWorks";
 import { PaymentSection } from "@/components/store/PaymentSection";
@@ -25,6 +26,7 @@ function Storefront() {
       <main className="flex-1">
         <Hero />
         <Marquee />
+        <OutfitCarousel />
         <ShopSection />
         <HowItWorks />
         <PaymentSection />

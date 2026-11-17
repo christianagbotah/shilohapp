@@ -1,7 +1,6 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import Image from "next/image";
 import { Check, Minus, Plus, ShoppingBag } from "lucide-react";
 import { Drawer, DrawerContent, DrawerDescription, DrawerTitle } from "@/components/ui/drawer";
 import { Button } from "@/components/ui/button";
@@ -10,6 +9,7 @@ import { useCart } from "@/store/cart";
 import { useUi } from "@/store/ui";
 import { formatGhs } from "@/lib/format";
 import { PRODUCT_TYPE_LABELS, type ProductDTO } from "@/lib/types";
+import { ProductGallery } from "@/components/store/ProductGallery";
 import { cn } from "@/lib/utils";
 
 function Options({ product }: { product: ProductDTO }) {
@@ -69,20 +69,7 @@ function Options({ product }: { product: ProductDTO }) {
     <>
       <div className="pretty-scroll flex-1 overflow-y-auto p-4 sm:p-6">
         <div className="grid gap-5 sm:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)]">
-      <div className="relative aspect-square overflow-hidden rounded-2xl border border-border bg-secondary">
-        <Image
-          src={product.image}
-          alt={product.name}
-          fill
-          sizes="(max-width: 640px) 90vw, 280px"
-          className="object-cover"
-        />
-        {product.badge ? (
-          <span className="absolute left-3 top-3 rounded-full bg-gold px-3 py-1 text-[0.65rem] font-bold uppercase tracking-wider text-primary-foreground">
-            {product.badge}
-          </span>
-        ) : null}
-      </div>
+      <ProductGallery product={product} />
 
       <div className="flex min-w-0 flex-col">
         <DrawerTitle asChild>

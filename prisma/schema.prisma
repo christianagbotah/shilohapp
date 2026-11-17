@@ -17,6 +17,7 @@ model Product {
   tagline   String?
   price     Float
   image     String
+  gallery   String? // JSON: [{src, label}] — front / side / back / detail views
   colors    String // JSON: [{name, hex}]
   sizes     String // JSON: [string]
   capStyles String? // JSON: [string] — only for caps (soft / hard)

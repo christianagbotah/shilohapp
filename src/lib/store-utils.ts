@@ -1,4 +1,4 @@
-import type { ProductDTO } from "@/lib/types";
+import type { GalleryImage, ProductDTO } from "@/lib/types";
 import { db } from "@/lib/db";
 
 // Server-only helpers. Pure client-safe helpers live in @/lib/format.
@@ -12,6 +12,7 @@ export function toProductDTO(row: {
   tagline: string | null;
   price: number;
   image: string;
+  gallery: string | null;
   colors: string;
   sizes: string;
   capStyles: string | null;
@@ -20,6 +21,7 @@ export function toProductDTO(row: {
   let colors: ProductDTO["colors"] = [];
   let sizes: string[] = [];
   let capStyles: string[] | null = null;
+  let gallery: GalleryImage[] = [];
   try {
     colors = JSON.parse(row.colors);
   } catch {
@@ -29,6 +31,15 @@ export function toProductDTO(row: {
     sizes = JSON.parse(row.sizes);
   } catch {
     sizes = [];
+  }
+  try {
+    gallery = row.gallery ? JSON.parse(row.gallery) : [];
+  } catch {
+    gallery = [];
+  }
+  // Always guarantee a Front view so the gallery never renders empty
+  if (!gallery.length) {
+    gallery = [{ src: row.image, label: "Front" }];
   }
   if (row.capStyles) {
     try {
@@ -45,6 +56,7 @@ export function toProductDTO(row: {
     tagline: row.tagline,
     price: row.price,
     image: row.image,
+    gallery,
     colors,
     sizes,
     capStyles,

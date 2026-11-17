@@ -10,6 +10,9 @@ export const PRODUCT_TYPE_LABELS: Record<ProductType, string> = {
 
 export type ColorOption = { name: string; hex: string };
 
+/** One view of a product — e.g. Front / Side / Back / Detail */
+export type GalleryImage = { src: string; label: string };
+
 export type ProductDTO = {
   id: string;
   type: ProductType;
@@ -18,6 +21,7 @@ export type ProductDTO = {
   tagline: string | null;
   price: number;
   image: string;
+  gallery: GalleryImage[];
   colors: ColorOption[];
   sizes: string[];
   capStyles: string[] | null;
