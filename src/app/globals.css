@@ -211,7 +211,7 @@
 
 /* Vaul drawer: full-width bottom sheet on mobile, centered card on desktop */
 .drawer-wide {
-  max-width: 32rem;
+  max-width: 44rem;
   margin-left: auto;
   margin-right: auto;
   border-top-left-radius: calc(var(--radius) + 8px);

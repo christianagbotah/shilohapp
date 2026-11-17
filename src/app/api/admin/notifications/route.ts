@@ -47,19 +47,30 @@ export async function POST(req: NextRequest) {
     if (!parsed.success) {
       return NextResponse.json({ error: "Invalid channel" }, { status: 400 });
     }
-    const result =
-      parsed.data.channel === "sms" ? await sendTestSms() : await sendTestEmail();
+    let message: string;
+    let resultStatus: string;
+    if (parsed.data.channel === "sms") {
+      // sendTestSms returns a rich outcome (provider detail + SMS balance).
+      const r = await sendTestSms();
+      resultStatus = r.status;
+      message =
+        r.status === "sent"
+          ? r.detail ?? "Test SMS sent to the admin phone."
+          : r.status === "skipped"
+            ? r.detail ?? "Skipped — SMS is not fully configured yet."
+            : r.detail ?? "Failed — see the newest entry in the log for the provider error.";
+    } else {
+      const r = await sendTestEmail();
+      resultStatus = r;
+      message =
+        r === "sent"
+          ? "Test email sent."
+          : r === "skipped"
+            ? "Skipped — SMTP is not fully configured yet (check the settings)."
+            : "Failed — see the newest entry in the log for the provider error.";
+    }
 
-    const message =
-      result === "sent"
-        ? parsed.data.channel === "sms"
-          ? "Test SMS sent to the admin phone."
-          : "Test email sent."
-        : result === "skipped"
-          ? "Skipped — channel is not fully configured yet (check the settings below)."
-          : "Failed — see the newest entry in the log for the provider error.";
-
-    return NextResponse.json({ result, message });
+    return NextResponse.json({ result: resultStatus, message });
   } catch (err) {
     console.error("POST /api/admin/notifications failed:", err);
     return NextResponse.json({ error: "Test send failed" }, { status: 500 });

@@ -15,8 +15,11 @@
  *   3. verifyHubtelTransaction() double-checks a clientReference against
  *      Hubtel's transaction API (belt & braces when the webhook is delayed).
  *
- * SMS flow (Hubtel Messaging API — smsc.hubtel.com):
- *   sendHubtelSms() -> POST /v1/messages/send with Basic auth.
+ * SMS flow (Hubtel Messaging API — sms.hubtel.com, batch simple send):
+ *   sendHubtelSms() -> POST /v1/messages/batch/simple/send with Basic auth.
+ *   Payload: { From, Recipients: ["+233…"], Content }. Success = status 0.
+ *   getHubtelSmsBalance() -> GET /v1/merchantaccount/merchants/{clientId}/balance
+ *   (used to diagnose insufficient / low balance on failures).
  */
 import { getSetting } from "@/lib/store-utils";
 import { formatGhs } from "@/lib/format";
@@ -27,7 +30,7 @@ import { formatGhs } from "@/lib/format";
 
 const INITIATE_URL = "https://payproxyapi.hubtel.com/items/initiate";
 const VERIFY_TXN_BASE = "https://api.hubtel.com/v1/merchant/transactions";
-const SEND_SMS_URL = "https://smsc.hubtel.com/v1/messages/send";
+const SEND_SMS_URL = "https://sms.hubtel.com/v1/messages/batch/simple/send";
 
 /** Every outbound call aborts after this so order placement is never blocked. */
 const PROVIDER_TIMEOUT_MS = 15_000;
@@ -327,7 +330,7 @@ export function normalizeWebhookPayload(body: Record<string, unknown>): WebhookI
 }
 
 // ---------------------------------------------------------------------------
-// SMS — Hubtel Messaging API (smsc.hubtel.com)
+// SMS — Hubtel Messaging API (sms.hubtel.com, batch simple send)
 // ---------------------------------------------------------------------------
 
 /** 0244123456 -> +233244123456 (the format Hubtel SMS expects). */
@@ -340,6 +343,50 @@ export function toInternationalGhPhone(local: string): string {
 
 export type SmsResult = { ok: true; detail: string } | { ok: false; error: string };
 
+export type SmsBalance = {
+  /** Account balance in GHS (null when the API did not report one). */
+  balance: number | null;
+  /** Cost per SMS page in GHS (Hubtel calls this "Credit"). */
+  ratePerPage: number | null;
+};
+
+/**
+ * Query the Hubtel SMS account balance — same endpoint the PHP version uses,
+ * so failure messages can explain INSUFFICIENT / LOW BALANCE situations.
+ */
+export async function getHubtelSmsBalance(): Promise<SmsBalance | null> {
+  const config = await getHubtelSmsConfig();
+  if (!config) return null;
+
+  try {
+    const res = await fetch(
+      `https://api.hubtel.com/v1/merchantaccount/merchants/${encodeURIComponent(config.clientId)}/balance`,
+      {
+        method: "GET",
+        headers: {
+          Authorization: basicAuth(config.clientId, config.clientSecret),
+          Accept: "application/json",
+        },
+        signal: AbortSignal.timeout(PROVIDER_TIMEOUT_MS),
+      }
+    );
+    if (!res.ok) return null;
+    const data = (await res.json().catch(() => null)) as {
+      Balance?: number | string;
+      Credit?: number | string;
+    } | null;
+    if (!data) return null;
+    const num = (v: number | string | undefined): number | null => {
+      if (v === undefined) return null;
+      const n = Number(v);
+      return Number.isFinite(n) ? n : null;
+    };
+    return { balance: num(data.Balance), ratePerPage: num(data.Credit) };
+  } catch {
+    return null;
+  }
+}
+
 /** Send one SMS through Hubtel. Throws nothing — always returns a result. */
 export async function sendHubtelSms(to: string, content: string): Promise<SmsResult> {
   const config = await getHubtelSmsConfig();
@@ -347,12 +394,11 @@ export async function sendHubtelSms(to: string, content: string): Promise<SmsRes
     return { ok: false, error: "SMS is not configured (Hubtel SMS API key missing)" };
   }
 
-  // --- Hubtel messaging payload ---
+  // --- Hubtel messaging payload (batch simple send) ---
   const payload = {
     From: config.senderId,
-    To: toInternationalGhPhone(to),
+    Recipients: [toInternationalGhPhone(to)],
     Content: content,
-    RegisteredDelivery: true,
   };
 
   try {
@@ -375,21 +421,34 @@ export async function sendHubtelSms(to: string, content: string): Promise<SmsRes
       data = {};
     }
 
-    // Hubtel classic API: Status "0" (string) = accepted for delivery.
-    const status =
-      (data["Status"] as string) ?? (data["status"] as string) ?? String(res.status);
-    const ok =
+    // Hubtel batch API: numeric status 0 = accepted for delivery (the PHP
+    // version checks $response['status'] == 0 with loose comparison).
+    const rawStatus = data["status"] ?? data["Status"];
+    const statusNum = Number(rawStatus);
+    const accepted =
       res.ok &&
-      (status === "0" || status.toLowerCase() === "queued" || status.toLowerCase() === "success");
-    if (ok) {
-      const id = (data["MessageId"] as string) || (data["id"] as string) || "";
+      (rawStatus !== undefined ? statusNum === 0 : false);
+    if (accepted) {
+      const id = (data["messageId"] as string) || (data["MessageId"] as string) || "";
       return { ok: true, detail: id ? `MessageId ${id}` : "Accepted" };
     }
-    const message =
-      (data["Message"] as string) ||
+
+    let message =
       (data["message"] as string) ||
+      (data["Message"] as string) ||
       (data["MessageResponse"] as string) ||
-      `HTTP ${res.status}: ${text.slice(0, 160)}`;
+      (rawStatus !== undefined ? `status ${rawStatus}` : `HTTP ${res.status}`);
+
+    // Mirror the PHP behaviour: on failure, check the balance so the admin
+    // knows immediately whether it is an INSUFFICIENT / LOW BALANCE case.
+    const bal = await getHubtelSmsBalance();
+    if (bal && bal.balance !== null) {
+      if (bal.balance <= 0) {
+        message += ` — INSUFFICIENT BALANCE: Hubtel SMS balance is GHS 0.00. Please top up.`;
+      } else if (bal.balance < 5) {
+        message += ` — LOW BALANCE: Hubtel SMS balance is GHS ${bal.balance.toFixed(2)}. Please top up soon.`;
+      }
+    }
     return { ok: false, error: message };
   } catch (err) {
     const error =

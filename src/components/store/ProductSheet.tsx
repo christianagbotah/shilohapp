@@ -83,7 +83,7 @@ function Options({ product }: { product: ProductDTO }) {
           <p className="mb-2 text-xs font-bold uppercase tracking-[0.18em] text-muted-foreground">
             Colour <span className="ml-1 normal-case tracking-normal text-foreground">— {color}</span>
           </p>
-          <div className="flex flex-wrap gap-2.5">
+          <div className="flex flex-wrap gap-2">
             {product.colors.map((c) => (
               <button
                 key={c.name}
@@ -92,7 +92,7 @@ function Options({ product }: { product: ProductDTO }) {
                 aria-label={`Colour ${c.name}`}
                 aria-pressed={color === c.name}
                 className={cn(
-                  "flex h-10 w-10 items-center justify-center rounded-full border-2 transition-all",
+                  "flex h-8 w-8 items-center justify-center rounded-full border-2 transition-all",
                   color === c.name
                     ? "border-gold shadow-[0_0_0_3px_var(--gold-25,rgba(212,164,55,0.25))]"
                     : "border-white/15 hover:border-white/40"
@@ -100,7 +100,7 @@ function Options({ product }: { product: ProductDTO }) {
                 style={{ backgroundColor: c.hex }}
               >
                 {color === c.name ? (
-                  <Check className="h-4 w-4 drop-shadow" style={{ color: "#fff", mixBlendMode: "difference" }} aria-hidden />
+                  <Check className="h-3.5 w-3.5 drop-shadow" style={{ color: "#fff", mixBlendMode: "difference" }} aria-hidden />
                 ) : null}
               </button>
             ))}
@@ -142,7 +142,7 @@ function Options({ product }: { product: ProductDTO }) {
           <p className="mb-2 text-xs font-bold uppercase tracking-[0.18em] text-muted-foreground">
             Size {product.type === "cap" ? "" : "— true to fit"}
           </p>
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-1.5">
             {product.sizes.map((s) => (
               <button
                 key={s}
@@ -150,7 +150,7 @@ function Options({ product }: { product: ProductDTO }) {
                 onClick={() => setSize(s)}
                 aria-pressed={size === s}
                 className={cn(
-                  "min-w-11 rounded-xl border px-3 py-2 text-sm font-semibold transition-all",
+                  "min-w-9 rounded-lg border px-2.5 py-1.5 text-sm font-semibold transition-all",
                   size === s
                     ? "border-gold/60 bg-gold font-bold text-primary-foreground"
                     : "border-border bg-secondary text-muted-foreground hover:text-foreground"

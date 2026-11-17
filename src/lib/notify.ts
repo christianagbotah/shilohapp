@@ -10,6 +10,7 @@ import { db } from "@/lib/db";
 import { getSetting } from "@/lib/store-utils";
 import { formatGhs } from "@/lib/format";
 import {
+  getHubtelSmsBalance,
   getHubtelSmsConfig,
   sendHubtelSms,
   smsOrderPlacedAdmin,
@@ -320,27 +321,57 @@ export async function notifyPaymentConfirmed(order: NotifyOrder): Promise<void> 
 // Tests (from the Back Office settings tab)
 // ---------------------------------------------------------------------------
 
-export async function sendTestSms(): Promise<"sent" | "failed" | "skipped"> {
+export type TestSmsOutcome = {
+  status: "sent" | "failed" | "skipped";
+  /** Human-readable detail (provider response + SMS balance when known). */
+  detail?: string;
+};
+
+export async function sendTestSms(): Promise<TestSmsOutcome> {
   const adminPhone = await getSetting("admin_phone");
   if (!adminPhone) {
     await log({ channel: "sms", recipient: "—", purpose: "test", status: "skipped", detail: "Admin phone not set" });
-    return "skipped";
+    return { status: "skipped", detail: "Admin phone is not set in Settings." };
   }
   const config = await getHubtelSmsConfig();
   if (!config) {
     await log({ channel: "sms", recipient: adminPhone, purpose: "test", status: "skipped", detail: "Hubtel SMS API not configured" });
-    return "skipped";
+    return { status: "skipped", detail: "Hubtel SMS API key / secret not configured." };
   }
-  const result = await sendHubtelSms(
-    adminPhone,
-    "Shiloh 2026 Back Office: this is a test SMS. Your SMS alerts are working!"
-  );
+  // Report the account balance alongside the test so the admin can top up
+  // before it runs dry (mirrors the balance check in the PHP integration).
+  const [result, balance] = await Promise.all([
+    sendHubtelSms(
+      adminPhone,
+      "Shiloh 2026 Back Office: this is a test SMS. Your SMS alerts are working!"
+    ),
+    getHubtelSmsBalance(),
+  ]);
+  const balanceNote =
+    balance && balance.balance !== null
+      ? ` Hubtel SMS balance: GHS ${balance.balance.toFixed(2)}.`
+      : "";
   if (result.ok) {
-    await log({ channel: "sms", recipient: adminPhone, purpose: "test", status: "sent", detail: result.detail });
-    return "sent";
+    await log({
+      channel: "sms",
+      recipient: adminPhone,
+      purpose: "test",
+      status: "sent",
+      detail: `${result.detail}.${balanceNote}`.trim(),
+    });
+    return {
+      status: "sent",
+      detail: `Test SMS sent to ${adminPhone}.${balanceNote}`.trim(),
+    };
   }
-  await log({ channel: "sms", recipient: adminPhone, purpose: "test", status: "failed", detail: result.error });
-  return "failed";
+  await log({
+    channel: "sms",
+    recipient: adminPhone,
+    purpose: "test",
+    status: "failed",
+    detail: `${result.error}.${balanceNote}`.trim(),
+  });
+  return { status: "failed", detail: `${result.error}.${balanceNote}`.trim() };
 }
 
 export async function sendTestEmail(): Promise<"sent" | "failed" | "skipped"> {
