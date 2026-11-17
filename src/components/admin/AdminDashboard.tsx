@@ -59,6 +59,7 @@ import {
 import { cn } from "@/lib/utils";
 import { AdminSettings } from "@/components/admin/AdminSettings";
 import { AdminAlerts } from "@/components/admin/AdminAlerts";
+import { AdminProducts } from "@/components/admin/AdminProducts";
 import { PrintRoot, type PrintJob } from "@/components/admin/AdminPrint";
 
 // Ensure lucide icon typing stays consistent for StatCard
@@ -707,7 +708,7 @@ export function AdminDashboard() {
             <div className="leading-none">
               <p className="font-display text-base font-bold">Shiloh {year} — Back Office</p>
               <p className="mt-1 text-[0.62rem] font-semibold uppercase tracking-[0.22em] text-muted-foreground">
-                Orders &amp; Payments
+                Orders · Catalogue · Payments
               </p>
             </div>
           </div>
@@ -762,6 +763,13 @@ export function AdminDashboard() {
               Orders
             </TabsTrigger>
             <TabsTrigger
+              value="products"
+              className="rounded-full px-5 font-semibold data-[state=active]:bg-gold data-[state=active]:text-primary-foreground"
+            >
+              <Package className="mr-1.5 h-4 w-4" aria-hidden />
+              Products
+            </TabsTrigger>
+            <TabsTrigger
               value="alerts"
               className="rounded-full px-5 font-semibold data-[state=active]:bg-gold data-[state=active]:text-primary-foreground"
             >
@@ -782,6 +790,9 @@ export function AdminDashboard() {
               onPrintInvoice={(order) => runPrint({ kind: "invoice", order })}
               onPrintManifest={(orders) => runPrint({ kind: "manifest", orders })}
             />
+          </TabsContent>
+          <TabsContent value="products" className="mt-5">
+            <AdminProducts token={token} />
           </TabsContent>
           <TabsContent value="alerts" className="mt-5">
             <AdminAlerts token={token} />

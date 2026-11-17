@@ -28,6 +28,12 @@ export type ProductDTO = {
   badge: string | null;
 };
 
+/** Product as seen from the Back Office — adds catalogue management fields */
+export type AdminProductDTO = ProductDTO & {
+  sortOrder: number;
+  active: boolean;
+};
+
 export type StoreInfo = {
   momoNumber: string;
   momoName: string;
