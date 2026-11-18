@@ -156,8 +156,8 @@ export function CartDrawer() {
               </div>
               <Separator className="bg-border" />
               <p className="text-xs leading-relaxed text-muted-foreground">
-                Checkout takes you to Hubtel&apos;s secure page — approve the prompt on your phone
-                and your order is confirmed instantly.
+                Checkout takes you to Hubtel&apos;s secure page — enter the one-time code (OTP) they
+                text you, approve the prompt on your phone, and your order is confirmed instantly.
               </p>
               <Button
                 onClick={goCheckout}

@@ -242,8 +242,10 @@ export function CheckoutDialog() {
             <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-gold" aria-hidden />
             <span>
               You&apos;ll be taken to <span className="font-semibold text-foreground">Hubtel&apos;s secure checkout</span> to pay
-              with MTN MoMo, Telecel Cash, AirtelTigo Money or card. Your order is confirmed the
-              moment payment succeeds.
+              with MTN MoMo, Telecel Cash, AirtelTigo Money or card. Hubtel texts a{" "}
+              <span className="font-semibold text-foreground">one-time code (OTP)</span> to the number
+              you&apos;re paying from — input the digits into the fields on their page, then approve the
+              prompt on your phone. Your order is confirmed the moment payment succeeds.
             </span>
           </div>
 

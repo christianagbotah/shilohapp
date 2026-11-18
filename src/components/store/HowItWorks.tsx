@@ -20,7 +20,7 @@ const STEPS = [
     icon: BadgeCheck,
     step: "03",
     title: "Pay & get instant confirmation",
-    body: "Approve Hubtel's secure prompt on your phone — MTN MoMo, Telecel Cash, AirtelTigo Money or card. Your order confirms instantly and SMS alerts keep you posted.",
+    body: "Pay on Hubtel's secure page — MTN MoMo, Telecel Cash, AirtelTigo Money or card. They text a one-time code (OTP) to the number you're paying from; input the digits, approve the prompt on your phone, and your order confirms instantly with SMS alerts keeping you posted.",
   },
 ];
 

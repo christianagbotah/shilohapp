@@ -16,7 +16,11 @@ const FAQS: Faq[] = [
   },
   {
     q: "How exactly do I pay?",
-    a: "Tap Pay Now at checkout and you'll be taken to Hubtel's secure payment page — approve the prompt with MTN MoMo, Telecel Cash, AirtelTigo Money or a card. Your order confirms automatically and you get an SMS with the details.",
+    a: "Tap Pay Now at checkout and you'll be taken to Hubtel's secure payment page. Choose MTN MoMo, Telecel Cash, AirtelTigo Money or a card — Hubtel texts a one-time code (OTP) to the number you're paying from, you input the digits into the fields on their page, and only then does the approval prompt appear on your phone. Approve it and your order confirms automatically — you get an SMS with the details.",
+  },
+  {
+    q: "Why is Hubtel asking me for an OTP code?",
+    a: "Before the approval prompt can show on your phone, Hubtel sends a one-time password (OTP) to the mobile money number you're paying from. Simply input the numerical digits into the fields Hubtel provides — once it's verified, the approval prompt appears and you can confirm the payment. The code expires quickly, so keep the phone you're paying with close by.",
   },
   {
     q: "What sizes are available?",

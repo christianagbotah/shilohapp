@@ -50,8 +50,8 @@ export function PaymentSection() {
           </h2>
           <p className="mt-4 max-w-lg text-sm leading-relaxed text-muted-foreground sm:text-base">
             Pick your merch, tap Pay Now and Hubtel&apos;s secure checkout takes it from there —
-            approve the prompt on your phone and your order is confirmed instantly. No long codes to
-            type, no waiting.
+            enter the one-time code they text you, approve the prompt on your phone, and your
+            order is confirmed instantly.
           </p>
           <ul className="mt-6 space-y-4">
             {FEATURES.map((f) => (
@@ -86,7 +86,7 @@ export function PaymentSection() {
               </div>
             </div>
             <span className="rounded-full bg-gold/15 px-3 py-1 text-[0.65rem] font-bold uppercase tracking-wider text-gold">
-              One-tap pay
+              Secure &amp; instant
             </span>
           </div>
 
@@ -101,8 +101,13 @@ export function PaymentSection() {
                 <span className="font-semibold text-foreground">Hubtel&apos;s secure page</span>
               </>,
               <>
-                Choose <span className="font-semibold text-foreground">MoMo, wallet or card</span> and approve
-                the prompt on your phone
+                Choose <span className="font-semibold text-foreground">MoMo, wallet or card</span> —
+                Hubtel texts a <span className="font-semibold text-foreground">one-time code (OTP)</span> to
+                the number you&apos;re paying from
+              </>,
+              <>
+                Input the <span className="font-semibold text-foreground">OTP digits</span> into the fields
+                on Hubtel&apos;s page — the approval prompt then appears on your phone
               </>,
               <>
                 Payment confirmed — <span className="font-semibold text-foreground">SMS alerts</span> sent to you

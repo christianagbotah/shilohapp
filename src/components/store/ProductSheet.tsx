@@ -206,7 +206,8 @@ function Options({ product }: { product: ProductDTO }) {
         </div>
         <p className="mt-2.5 text-center text-xs leading-relaxed text-muted-foreground">
           After placing your order you&apos;ll pay on Hubtel&apos;s secure checkout — MTN MoMo,
-          Telecel Cash, AT Money and cards accepted.
+          Telecel Cash, AT Money and cards. You&apos;ll input a quick OTP before the approval prompt
+          shows on your phone.
         </p>
       </div>
     </>
