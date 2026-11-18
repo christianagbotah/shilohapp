@@ -15,6 +15,7 @@ import {
   Loader2,
   LogOut,
   Package,
+  PenLine,
   Phone,
   Printer,
   RefreshCcw,
@@ -59,6 +60,7 @@ import {
 } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { AdminSettings } from "@/components/admin/AdminSettings";
+import { AdminContent } from "@/components/admin/AdminContent";
 import { AdminAlerts } from "@/components/admin/AdminAlerts";
 import { AdminProducts } from "@/components/admin/AdminProducts";
 import { AdminInsights } from "@/components/admin/AdminInsights";
@@ -785,6 +787,13 @@ export function AdminDashboard() {
               Products
             </TabsTrigger>
             <TabsTrigger
+              value="content"
+              className="rounded-full px-5 font-semibold data-[state=active]:bg-gold data-[state=active]:text-primary-foreground"
+            >
+              <PenLine className="mr-1.5 h-4 w-4" aria-hidden />
+              Content
+            </TabsTrigger>
+            <TabsTrigger
               value="alerts"
               className="rounded-full px-5 font-semibold data-[state=active]:bg-gold data-[state=active]:text-primary-foreground"
             >
@@ -811,6 +820,9 @@ export function AdminDashboard() {
           </TabsContent>
           <TabsContent value="products" className="mt-5">
             <AdminProducts token={token} />
+          </TabsContent>
+          <TabsContent value="content" className="mt-5">
+            <AdminContent token={token} />
           </TabsContent>
           <TabsContent value="alerts" className="mt-5">
             <AdminAlerts token={token} />

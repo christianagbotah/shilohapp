@@ -2,46 +2,33 @@
 
 import { motion } from "framer-motion";
 import { BadgeCheck, ClipboardList, ShoppingBag } from "lucide-react";
+import { useStoreInfo } from "@/hooks/use-store-data";
+import { DEFAULT_SITE_CONTENT } from "@/lib/site-content";
 
-const STEPS = [
-  {
-    icon: ShoppingBag,
-    step: "01",
-    title: "Pick your merch",
-    body: "Browse t-shirts, lacostes, jerseys and caps for adults and kids. Choose colour, size and quantity — caps come soft or hard.",
-  },
-  {
-    icon: ClipboardList,
-    step: "02",
-    title: "Place your order",
-    body: "Enter your name and phone number — no account needed. Tap Pay Now and you instantly receive a unique order code, e.g. SHL-7K2P9Q.",
-  },
-  {
-    icon: BadgeCheck,
-    step: "03",
-    title: "Pay & get instant confirmation",
-    body: "Pay on Hubtel's secure page — MTN MoMo, Telecel Cash, AirtelTigo Money or card. They text a one-time code (OTP) to the number you're paying from; input the digits, approve the prompt on your phone, and your order confirms instantly with SMS alerts keeping you posted.",
-  },
-];
+const STEP_ICONS = [ShoppingBag, ClipboardList, BadgeCheck];
 
 export function HowItWorks() {
+  const { data: info } = useStoreInfo();
+  const c = info?.content?.how ?? DEFAULT_SITE_CONTENT.how;
+
   return (
     <section id="how" className="border-y border-border bg-secondary/40">
       <div className="mx-auto max-w-6xl scroll-mt-24 px-4 py-14 sm:px-6 sm:py-20">
         <div className="mb-10 text-center">
-          <p className="text-xs font-bold uppercase tracking-[0.28em] text-gold">Simple by design</p>
+          <p className="text-xs font-bold uppercase tracking-[0.28em] text-gold">{c.eyebrow}</p>
           <h2 className="mt-2 font-display text-3xl font-bold uppercase tracking-tight sm:text-4xl">
-            How to Order
+            {c.title}
           </h2>
           <p className="mx-auto mt-3 max-w-lg text-sm leading-relaxed text-muted-foreground sm:text-base">
-            From picking your piece to instant confirmation — the whole flow takes less than two
-            minutes on your phone.
+            {c.subtitle}
           </p>
         </div>
         <div className="grid gap-5 sm:grid-cols-3 sm:gap-6">
-          {STEPS.map((s, i) => (
+          {c.steps.map((s, i) => {
+            const Icon = STEP_ICONS[i % STEP_ICONS.length];
+            return (
             <motion.div
-              key={s.step}
+              key={i}
               initial={{ opacity: 0, y: 22 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, margin: "-60px" }}
@@ -52,15 +39,16 @@ export function HowItWorks() {
                 className="pointer-events-none absolute -right-2 -top-5 font-display text-7xl font-bold text-foreground/5"
                 aria-hidden
               >
-                {s.step}
+                {String(i + 1).padStart(2, "0")}
               </span>
               <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gold/15 text-gold">
-                <s.icon className="h-6 w-6" aria-hidden />
+                <Icon className="h-6 w-6" aria-hidden />
               </span>
               <h3 className="mt-4 font-display text-lg font-bold">{s.title}</h3>
               <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{s.body}</p>
             </motion.div>
-          ))}
+            );
+          })}
         </div>
       </div>
     </section>

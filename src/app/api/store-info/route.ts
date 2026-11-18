@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getSetting } from "@/lib/store-utils";
 import { toInternationalGhPhone } from "@/lib/hubtel";
+import { loadSiteContent } from "@/lib/site-content-server";
 import { STORE_INFO_DEFAULTS } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
@@ -28,6 +29,7 @@ export async function GET() {
       getSetting("hubtel_merchant_number"),
       getSetting("admin_phone"),
     ]);
+    const content = await loadSiteContent();
     return NextResponse.json({
       announcement: announcement ?? "",
       shilohYear: shilohYear ?? STORE_INFO_DEFAULTS.shilohYear,
@@ -39,6 +41,8 @@ export async function GET() {
       /** Team contact number in international format for the WhatsApp
        *  click-to-chat button ("" when admin_phone is not configured). */
       supportPhone: adminPhone ? toInternationalGhPhone(adminPhone).replace("+", "") : "",
+      /** Back-office editable marketing copy (merged over defaults). */
+      content,
     });
   } catch (err) {
     console.error("GET /api/store-info failed:", err);

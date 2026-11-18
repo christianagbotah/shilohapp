@@ -45,6 +45,8 @@ export type StoreInfo = {
   hubtelActive: boolean;
   /** Team WhatsApp number in international format without \"+\" (\"\" = hidden) */
   supportPhone: string;
+  /** Back-office editable marketing copy (undefined until store-info loads) */
+  content?: import("./site-content").SiteContent;
 };
 
 /** Fallbacks used while settings load or if they are missing */

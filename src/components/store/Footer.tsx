@@ -5,6 +5,7 @@ import { useUi } from "@/store/ui";
 import { useStoreInfo } from "@/hooks/use-store-data";
 import { BrandLogo } from "@/components/store/BrandLogo";
 import { STORE_INFO_DEFAULTS } from "@/lib/types";
+import { DEFAULT_SITE_CONTENT, hydrate } from "@/lib/site-content";
 
 export function Footer() {
   const setView = useUi((s) => s.setView);
@@ -12,6 +13,8 @@ export function Footer() {
   const { data: info } = useStoreInfo();
   const year = info?.shilohYear ?? STORE_INFO_DEFAULTS.shilohYear;
   const tagline = info?.shilohTagline ?? STORE_INFO_DEFAULTS.shilohTagline;
+  const c = info?.content?.footer ?? DEFAULT_SITE_CONTENT.footer;
+  const vars = { year, dates: info?.shilohDates ?? STORE_INFO_DEFAULTS.shilohDates, tagline };
 
   return (
     <footer className="mt-auto border-t border-border bg-secondary/30">
@@ -30,13 +33,10 @@ export function Footer() {
               </span>
             </div>
             <p className="mt-4 max-w-sm text-sm leading-relaxed text-muted-foreground">
-              The official merch store for the Shiloh convocation of the Winners&apos; family
-              worldwide — serving members across Ghana with premium t-shirts, lacostes, jerseys and
-              caps for adults and kids.
+              {hydrate(c.about, vars)}
             </p>
             <p className="mt-4 flex items-center gap-2 text-xs text-muted-foreground">
-              <MapPin className="h-3.5 w-3.5 text-gold" aria-hidden /> Winners Chapel International —
-              Ghana
+              <MapPin className="h-3.5 w-3.5 text-gold" aria-hidden /> {hydrate(c.location, vars)}
             </p>
           </div>
 
@@ -77,7 +77,7 @@ export function Footer() {
         </div>
 
         <div className="mt-10 flex flex-col items-center justify-between gap-3 border-t border-border pt-6 text-center text-xs text-muted-foreground sm:flex-row sm:text-left">
-          <p>© {year} Shiloh Merch Store • Winners Chapel International, Ghana</p>
+          <p>{hydrate(c.copyright, vars)}</p>
           <p className="font-display font-semibold uppercase tracking-[0.2em] text-gold/80">
             {tagline}
           </p>

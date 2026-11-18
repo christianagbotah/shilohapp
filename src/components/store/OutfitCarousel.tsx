@@ -4,10 +4,11 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { ChevronLeft, ChevronRight, Plus, Sparkles } from "lucide-react";
-import { useProducts } from "@/hooks/use-store-data";
+import { useProducts, useStoreInfo } from "@/hooks/use-store-data";
 import { useUi } from "@/store/ui";
 import { formatGhs } from "@/lib/format";
 import { PRODUCT_TYPE_LABELS, type AgeGroup, type ProductDTO, type ProductType } from "@/lib/types";
+import { DEFAULT_SITE_CONTENT } from "@/lib/site-content";
 import { cn } from "@/lib/utils";
 
 type Hotspot = {
@@ -28,40 +29,22 @@ type Slide = {
   hotspots: Hotspot[];
 };
 
-const SLIDES: Slide[] = [
-  {
-    image: "/products/look-1.jpg",
-    title: "Far Above in Every Thread",
-    description: "The signature Shiloh tee — shown front and back, just as it arrives.",
-    hotspots: [{ type: "tshirt", ageGroup: "adult", x: 30, y: 38, caption: "The Classic Tee" }],
-  },
-  {
-    image: "/products/look-2.jpg",
-    title: "The Full Collection",
-    description: "Tees in every colour of the convocation — for every member of the Winners' family.",
-    hotspots: [
-      { type: "tshirt", ageGroup: "adult", x: 26, y: 32, caption: "Classic Tee" },
-      { type: "tshirt", ageGroup: "kid", x: 40, y: 78, caption: "Kids Tee" },
-    ],
-  },
-  {
-    image: "/products/look-3.jpg",
-    title: "Crowns of the Convocation",
-    description: "Soft or hard crown, every colour of praise — embroidered with the Far Above crest.",
-    hotspots: [
-      { type: "cap", ageGroup: "adult", x: 48, y: 62, caption: "Shiloh Cap" },
-      { type: "cap", ageGroup: "kid", x: 83, y: 22, caption: "Kids Cap" },
-    ],
-  },
-  {
-    image: "/products/look-4.jpg",
-    title: "Polished. Pique. Praise.",
-    description: "The lacoste and cap pairing — layered for the season of encounters.",
-    hotspots: [
-      { type: "lacoste", ageGroup: "adult", x: 50, y: 66, caption: "Shiloh Lacoste" },
-      { type: "cap", ageGroup: "adult", x: 57, y: 28, caption: "Shiloh Cap" },
-    ],
-  },
+/** Hotspot pins stay tied to catalog product types (set at build time) —
+ *  admin editing covers each slide's image, title and description. */
+const SLIDE_HOTSPOTS: Hotspot[][] = [
+  [{ type: "tshirt", ageGroup: "adult", x: 30, y: 38, caption: "The Classic Tee" }],
+  [
+    { type: "tshirt", ageGroup: "adult", x: 26, y: 32, caption: "Classic Tee" },
+    { type: "tshirt", ageGroup: "kid", x: 40, y: 78, caption: "Kids Tee" },
+  ],
+  [
+    { type: "cap", ageGroup: "adult", x: 48, y: 62, caption: "Shiloh Cap" },
+    { type: "cap", ageGroup: "kid", x: 83, y: 22, caption: "Kids Cap" },
+  ],
+  [
+    { type: "lacoste", ageGroup: "adult", x: 50, y: 66, caption: "Shiloh Lacoste" },
+    { type: "cap", ageGroup: "adult", x: 57, y: 28, caption: "Shiloh Cap" },
+  ],
 ];
 
 const AUTOPLAY_MS = 6000;
@@ -134,12 +117,20 @@ export function OutfitCarousel() {
   const [paused, setPaused] = useState(false);
   const prefersReduced = useReducedMotion();
   const { data: products } = useProducts();
+  const { data: info } = useStoreInfo();
+  const c = info?.content?.lookbook ?? DEFAULT_SITE_CONTENT.lookbook;
   const openProduct = useUi((s) => s.openProduct);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // Slides come from Back Office content; hotspots attach by index.
+  const slides = c.slides.map((s, i) => ({
+    ...s,
+    hotspots: SLIDE_HOTSPOTS[i % SLIDE_HOTSPOTS.length],
+  }));
+
   const go = useCallback((dir: number) => {
-    setState(([i]) => [(i + dir + SLIDES.length) % SLIDES.length, dir]);
-  }, []);
+    setState(([i]) => [(i + dir + slides.length) % slides.length, dir]);
+  }, [slides.length]);
 
   const jumpTo = useCallback((target: number) => {
     setState(([i]) => [target, target > i ? 1 : -1]);
@@ -154,7 +145,7 @@ export function OutfitCarousel() {
     };
   }, [index, paused, prefersReduced, go]);
 
-  const slide = SLIDES[index];
+  const slide = slides[index];
 
   const resolveProduct = useMemo(
     () => (h: Hotspot) => products?.find((p) => p.type === h.type && p.ageGroup === h.ageGroup),
@@ -171,21 +162,25 @@ export function OutfitCarousel() {
       <div className="mb-8 flex flex-wrap items-end justify-between gap-4 sm:mb-10">
         <div>
           <p className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.28em] text-gold">
-            <Sparkles className="h-3.5 w-3.5" aria-hidden /> The Lookbook
+            <Sparkles className="h-3.5 w-3.5" aria-hidden /> {c.eyebrow}
           </p>
           <h2 className="mt-2 font-display text-3xl font-bold uppercase tracking-tight sm:text-4xl">
-            Shop the Look
+            {c.title}
           </h2>
           <p className="mt-3 max-w-xl text-sm leading-relaxed text-muted-foreground sm:text-base">
-            Styled straight from the collection — tap a{" "}
-            <Plus className="inline h-3 w-3 text-gold" aria-hidden /> pin on any piece to shop it
-            instantly.
+            {c.subtitle || (
+              <>
+                Styled straight from the collection — tap a{" "}
+                <Plus className="inline h-3 w-3 text-gold" aria-hidden /> pin on any piece to shop it
+                instantly.
+              </>
+            )}
           </p>
         </div>
         <p className="font-display text-sm font-bold tabular-nums tracking-[0.3em] text-muted-foreground">
           {String(index + 1).padStart(2, "0")}
           <span className="mx-1 text-gold">/</span>
-          {String(SLIDES.length).padStart(2, "0")}
+          {String(slides.length).padStart(2, "0")}
         </p>
       </div>
 
@@ -273,7 +268,7 @@ export function OutfitCarousel() {
 
             {/* Segmented progress scrubber (motionsites style) */}
             <div className="flex items-center gap-2" role="tablist" aria-label="Lookbook slides">
-              {SLIDES.map((s, i) => (
+              {slides.map((s, i) => (
                 <button
                   key={s.title}
                   type="button"

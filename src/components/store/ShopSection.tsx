@@ -10,6 +10,7 @@ import { useProducts, useStoreInfo } from "@/hooks/use-store-data";
 import { useUi } from "@/store/ui";
 import { formatGhs } from "@/lib/format";
 import { PRODUCT_TYPE_LABELS, STORE_INFO_DEFAULTS, type ProductDTO } from "@/lib/types";
+import { DEFAULT_SITE_CONTENT, hydrate } from "@/lib/site-content";
 import { cn } from "@/lib/utils";
 
 type Filter = "all" | "tshirt" | "lacoste" | "jersey" | "cap" | "adult" | "kid";
@@ -120,18 +121,18 @@ export function ShopSection() {
   const { data: products, isLoading, isError, refetch } = useProducts();
   const { data: info } = useStoreInfo();
   const year = info?.shilohYear ?? STORE_INFO_DEFAULTS.shilohYear;
+  const c = info?.content?.shop ?? DEFAULT_SITE_CONTENT.shop;
 
   return (
     <section id="shop" className="mx-auto w-full max-w-6xl scroll-mt-24 px-4 py-14 sm:px-6 sm:py-20">
       <div className="mb-8 flex flex-col gap-4 sm:mb-10">
         <div>
-          <p className="text-xs font-bold uppercase tracking-[0.28em] text-gold">The Collection</p>
+          <p className="text-xs font-bold uppercase tracking-[0.28em] text-gold">{c.eyebrow}</p>
           <h2 className="mt-2 font-display text-3xl font-bold uppercase tracking-tight sm:text-4xl">
-            Shop the Merch
+            {c.title}
           </h2>
           <p className="mt-3 max-w-xl text-sm leading-relaxed text-muted-foreground sm:text-base">
-            Every piece carries the Shiloh {year} gold crest. Choose your type, colour, size and
-            quantity — for every member of the family.
+            {hydrate(c.subtitle, { year, dates: info?.shilohDates ?? STORE_INFO_DEFAULTS.shilohDates, tagline: info?.shilohTagline ?? STORE_INFO_DEFAULTS.shilohTagline })}
           </p>
         </div>
         <div className="relative">

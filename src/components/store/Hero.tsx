@@ -20,9 +20,10 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { BrandLogo, SHILOH_FLYER_SRC } from "@/components/store/BrandLogo";
+import { BrandLogo } from "@/components/store/BrandLogo";
 import { useStoreInfo } from "@/hooks/use-store-data";
 import { STORE_INFO_DEFAULTS } from "@/lib/types";
+import { DEFAULT_SITE_CONTENT, hydrate } from "@/lib/site-content";
 
 function useCountdown(target: number) {
   const [now, setNow] = useState<number | null>(null);
@@ -106,6 +107,8 @@ export function Hero() {
   const tagline = info?.shilohTagline ?? STORE_INFO_DEFAULTS.shilohTagline;
   const dates = info?.shilohDates ?? STORE_INFO_DEFAULTS.shilohDates;
   const startIso = info?.shilohStart ?? STORE_INFO_DEFAULTS.shilohStart;
+  const c = info?.content?.hero ?? DEFAULT_SITE_CONTENT.hero;
+  const vars = { year, dates, tagline };
 
   return (
     <section id="top" className="hero-radial relative overflow-hidden">
@@ -137,9 +140,7 @@ export function Hero() {
             transition={{ duration: 0.55, delay: 0.16, ease: "easeOut" }}
             className="max-w-md text-base leading-relaxed text-muted-foreground sm:text-lg"
           >
-            The official <span className="font-semibold text-foreground">Shiloh {year}</span> merch —
-            premium t-shirts, lacostes, jerseys and caps for adults and kids. Order in under a
-            minute, pay instantly with MoMo or card, anywhere in Ghana.
+            {hydrate(c.intro, vars)}
           </motion.p>
 
           <motion.div
@@ -152,7 +153,7 @@ export function Hero() {
               className="h-12 rounded-full bg-gradient-to-r from-gold to-gold-deep px-7 text-base font-bold text-primary-foreground shadow-[0_14px_40px_-12px_var(--gold)] hover:opacity-95"
             >
               <a href="#shop">
-                Shop the Collection
+                {c.ctaPrimary}
                 <ArrowDown className="ml-1 h-4 w-4" aria-hidden />
               </a>
             </Button>
@@ -161,7 +162,7 @@ export function Hero() {
               variant="outline"
               className="h-12 rounded-full border-border px-6 text-base font-semibold hover:border-gold/40 hover:bg-secondary hover:text-gold"
             >
-              <a href="#payment">Pay in One Tap</a>
+              <a href="#payment">{c.ctaSecondary}</a>
             </Button>
           </motion.div>
 
@@ -178,15 +179,18 @@ export function Hero() {
             transition={{ duration: 0.55, delay: 0.4, ease: "easeOut" }}
             className="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-muted-foreground"
           >
-            <li className="flex items-center gap-2">
-              <ShieldCheck className="h-4 w-4 text-gold" aria-hidden /> 100% official merch
-            </li>
-            <li className="flex items-center gap-2">
-              <Smartphone className="h-4 w-4 text-gold" aria-hidden /> Secure MoMo &amp; card payment
-            </li>
-            <li className="flex items-center gap-2">
-              <Truck className="h-4 w-4 text-gold" aria-hidden /> Delivery across Ghana
-            </li>
+            {c.trust.map((t, i) => (
+              <li key={i} className="flex items-center gap-2">
+                {i === 0 ? (
+                  <ShieldCheck className="h-4 w-4 text-gold" aria-hidden />
+                ) : i === 1 ? (
+                  <Smartphone className="h-4 w-4 text-gold" aria-hidden />
+                ) : (
+                  <Truck className="h-4 w-4 text-gold" aria-hidden />
+                )}
+                {t}
+              </li>
+            ))}
           </motion.ul>
         </div>
 
@@ -203,7 +207,7 @@ export function Hero() {
             className="glow-gold group relative block aspect-[16/10] w-full overflow-hidden rounded-3xl border border-gold/25 bg-secondary/40"
           >
             <Image
-              src={SHILOH_FLYER_SRC}
+              src={c.flyerImage}
               alt={`Official Shiloh ${year} — ${tagline} flyer, Winners Chapel International`}
               fill
               sizes="(max-width: 1024px) 100vw, 560px"
@@ -226,8 +230,8 @@ export function Hero() {
               <BadgeCheck className="h-5 w-5" aria-hidden />
             </span>
             <div className="leading-tight">
-              <p className="text-sm font-semibold">Official Convocation Merch</p>
-              <p className="text-xs text-muted-foreground">Quality you can trust</p>
+              <p className="text-sm font-semibold">{c.badgeTitle}</p>
+              <p className="text-xs text-muted-foreground">{c.badgeSubtitle}</p>
             </div>
           </motion.div>
         </motion.div>
@@ -245,7 +249,7 @@ export function Hero() {
           </DialogHeader>
           <div className="relative mx-auto aspect-video w-full max-w-2xl overflow-hidden rounded-2xl bg-secondary/40">
             <Image
-              src={SHILOH_FLYER_SRC}
+              src={c.flyerImage}
               alt={`Official Shiloh ${year} — ${tagline} flyer, Winners Chapel International`}
               fill
               sizes="(max-width: 768px) 90vw, 640px"

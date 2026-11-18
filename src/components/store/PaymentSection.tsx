@@ -10,28 +10,34 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useUi } from "@/store/ui";
+import { useStoreInfo } from "@/hooks/use-store-data";
+import { DEFAULT_SITE_CONTENT } from "@/lib/site-content";
 
-const FEATURES = [
-  {
-    icon: Smartphone,
-    title: "Every wallet & card",
-    body: "MTN MoMo, Telecel Cash, AirtelTigo Money, Visa and Mastercard — all in one secure checkout.",
-  },
-  {
-    icon: BellRing,
-    title: "Instant SMS updates",
-    body: "You get an SMS with your order details immediately, and another the moment payment is confirmed.",
-  },
-  {
-    icon: ShieldCheck,
-    title: "Bank-grade security",
-    body: "Payments are processed by Hubtel, a licensed Ghanaian payment provider. We never see your PIN.",
-  },
-];
+const FEATURE_ICONS = [Smartphone, BellRing, ShieldCheck];
+
+/** Renders **bold** spans inside an admin-editable string. */
+function Rich({ text }: { text: string }) {
+  const parts = text.split(/(\*\*[^*]+\*\*)/g);
+  return (
+    <>
+      {parts.map((p, i) =>
+        p.startsWith("**") && p.endsWith("**") && p.length > 4 ? (
+          <span key={i} className="font-semibold text-foreground">
+            {p.slice(2, -2)}
+          </span>
+        ) : (
+          <span key={i}>{p}</span>
+        )
+      )}
+    </>
+  );
+}
 
 export function PaymentSection() {
   const setCartOpen = useUi((s) => s.setCartOpen);
   const setTrackOpen = useUi((s) => s.setTrackOpen);
+  const { data: info } = useStoreInfo();
+  const c = info?.content?.payment ?? DEFAULT_SITE_CONTENT.payment;
 
   return (
     <section id="payment" className="mx-auto max-w-6xl scroll-mt-24 px-4 py-14 sm:px-6 sm:py-20">
@@ -43,28 +49,29 @@ export function PaymentSection() {
           transition={{ duration: 0.55, ease: "easeOut" }}
         >
           <p className="text-xs font-bold uppercase tracking-[0.28em] text-gold">
-            Secure Online Payment
+            {c.eyebrow}
           </p>
           <h2 className="mt-2 font-display text-3xl font-bold uppercase tracking-tight sm:text-4xl">
-            Payment, <span className="text-gold-gradient">made easy</span>
+            {c.title} <span className="text-gold-gradient">{c.titleAccent}</span>
           </h2>
           <p className="mt-4 max-w-lg text-sm leading-relaxed text-muted-foreground sm:text-base">
-            Pick your merch, tap Pay Now and Hubtel&apos;s secure checkout takes it from there —
-            enter the one-time code they text you, approve the prompt on your phone, and your
-            order is confirmed instantly.
+            {c.subtitle}
           </p>
           <ul className="mt-6 space-y-4">
-            {FEATURES.map((f) => (
-              <li key={f.title} className="flex gap-3.5">
-                <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gold/15 text-gold">
-                  <f.icon className="h-4.5 w-4.5" aria-hidden />
-                </span>
-                <div>
-                  <p className="text-sm font-semibold">{f.title}</p>
-                  <p className="mt-0.5 text-sm leading-relaxed text-muted-foreground">{f.body}</p>
-                </div>
-              </li>
-            ))}
+            {c.features.map((f, i) => {
+              const Icon = FEATURE_ICONS[i % FEATURE_ICONS.length];
+              return (
+                <li key={i} className="flex gap-3.5">
+                  <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gold/15 text-gold">
+                    <Icon className="h-4.5 w-4.5" aria-hidden />
+                  </span>
+                  <div>
+                    <p className="text-sm font-semibold">{f.title}</p>
+                    <p className="mt-0.5 text-sm leading-relaxed text-muted-foreground">{f.body}</p>
+                  </div>
+                </li>
+              );
+            })}
           </ul>
         </motion.div>
 
@@ -91,40 +98,20 @@ export function PaymentSection() {
           </div>
 
           <ol className="mt-6 space-y-3">
-            {[
-              <>
-                Add your favourites to the cart and tap{" "}
-                <span className="font-semibold text-foreground">Pay Now</span>
-              </>,
-              <>
-                Enter your name &amp; phone — you&apos;ll be taken to{" "}
-                <span className="font-semibold text-foreground">Hubtel&apos;s secure page</span>
-              </>,
-              <>
-                Choose <span className="font-semibold text-foreground">MoMo, wallet or card</span> —
-                Hubtel texts a <span className="font-semibold text-foreground">one-time code (OTP)</span> to
-                the number you&apos;re paying from
-              </>,
-              <>
-                Input the <span className="font-semibold text-foreground">OTP digits</span> into the fields
-                on Hubtel&apos;s page — the approval prompt then appears on your phone
-              </>,
-              <>
-                Payment confirmed — <span className="font-semibold text-foreground">SMS alerts</span> sent to you
-                and our team instantly
-              </>,
-            ].map((line, i) => (
+            {c.steps.map((line, i) => (
               <li key={i} className="flex gap-3 text-sm leading-relaxed text-muted-foreground">
                 <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-gold/15 font-display text-xs font-bold text-gold">
                   {i + 1}
                 </span>
-                <span className="pt-0.5">{line}</span>
+                <span className="pt-0.5">
+                  <Rich text={line} />
+                </span>
               </li>
             ))}
           </ol>
 
           <div className="mt-6 flex flex-wrap items-center gap-2">
-            {["MTN MoMo", "Telecel Cash", "AT Money", "Visa", "Mastercard"].map((m) => (
+            {c.methods.map((m) => (
               <span
                 key={m}
                 className="rounded-full border border-border bg-background/70 px-3 py-1.5 text-xs font-semibold text-muted-foreground"
@@ -139,7 +126,7 @@ export function PaymentSection() {
             className="mt-6 h-12 w-full rounded-full bg-gradient-to-r from-gold to-gold-deep font-bold text-primary-foreground shadow-[0_12px_32px_-10px_var(--gold)] hover:opacity-95"
           >
             <CreditCard className="mr-2 h-4.5 w-4.5" aria-hidden />
-            Start an order
+            {c.buttonLabel}
           </Button>
 
           <p className="mt-6 rounded-xl border border-border bg-secondary/60 p-3.5 text-xs leading-relaxed text-muted-foreground">

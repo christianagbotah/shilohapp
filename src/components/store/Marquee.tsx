@@ -3,20 +3,15 @@
 import { Sparkle } from "lucide-react";
 import { useStoreInfo } from "@/hooks/use-store-data";
 import { STORE_INFO_DEFAULTS } from "@/lib/types";
+import { DEFAULT_SITE_CONTENT } from "@/lib/site-content";
 
 function useMarqueeItems() {
   const { data: info } = useStoreInfo();
   const year = info?.shilohYear ?? STORE_INFO_DEFAULTS.shilohYear;
   const tagline = info?.shilohTagline ?? STORE_INFO_DEFAULTS.shilohTagline;
   const dates = info?.shilohDates ?? STORE_INFO_DEFAULTS.shilohDates;
-  return [
-    `Shiloh ${year}`,
-    dates,
-    tagline,
-    "Official Convocation Merch",
-    "Pay with Hubtel",
-    "Adults & Kids",
-  ];
+  const extras = info?.content?.marquee?.extras ?? DEFAULT_SITE_CONTENT.marquee.extras;
+  return [`Shiloh ${year}`, dates, tagline, ...extras];
 }
 
 function Row({ items, hidden }: { items: string[]; hidden?: boolean }) {
