@@ -19,6 +19,7 @@ import { OrderSuccessDialog } from "@/components/store/OrderSuccessDialog";
 import { PaymentResultDialog } from "@/components/store/PaymentResultDialog";
 import { TrackOrderDialog } from "@/components/store/TrackOrderDialog";
 import { AdminView } from "@/components/admin/AdminView";
+import { WhatsAppFab } from "@/components/store/WhatsAppFab";
 
 function Storefront() {
   return (
@@ -42,6 +43,7 @@ function Storefront() {
       <PaymentResultDialog />
       <TrackOrderDialog />
       <CartFab />
+      <WhatsAppFab />
     </div>
   );
 }

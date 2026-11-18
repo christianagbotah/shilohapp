@@ -43,6 +43,8 @@ export type StoreInfo = {
   shilohStart: string; // ISO date the countdown targets, e.g. "2026-12-08"
   /** True when the admin activated Hubtel online checkout in the Back Office */
   hubtelActive: boolean;
+  /** Team WhatsApp number in international format without \"+\" (\"\" = hidden) */
+  supportPhone: string;
 };
 
 /** Fallbacks used while settings load or if they are missing */

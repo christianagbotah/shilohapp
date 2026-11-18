@@ -2,6 +2,8 @@
 
 # local database (contains admin password hash, Hubtel/SMS secrets, customer PII)
 /db/
+# database backups (same sensitive content)
+/backups/
 # agent tool output
 /tool-results/
 

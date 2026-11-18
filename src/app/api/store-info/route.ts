@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getSetting } from "@/lib/store-utils";
+import { toInternationalGhPhone } from "@/lib/hubtel";
 import { STORE_INFO_DEFAULTS } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
@@ -15,6 +16,7 @@ export async function GET() {
       hubtelClientId,
       hubtelClientSecret,
       hubtelMerchantNumber,
+      adminPhone,
     ] = await Promise.all([
       getSetting("announcement"),
       getSetting("shiloh_year"),
@@ -24,6 +26,7 @@ export async function GET() {
       getSetting("hubtel_client_id"),
       getSetting("hubtel_client_secret"),
       getSetting("hubtel_merchant_number"),
+      getSetting("admin_phone"),
     ]);
     return NextResponse.json({
       announcement: announcement ?? "",
@@ -33,6 +36,9 @@ export async function GET() {
       shilohStart: shilohStart ?? STORE_INFO_DEFAULTS.shilohStart,
       /** True when the admin has activated Hubtel online checkout. */
       hubtelActive: Boolean(hubtelClientId && hubtelClientSecret && hubtelMerchantNumber),
+      /** Team contact number in international format for the WhatsApp
+       *  click-to-chat button ("" when admin_phone is not configured). */
+      supportPhone: adminPhone ? toInternationalGhPhone(adminPhone).replace("+", "") : "",
     });
   } catch (err) {
     console.error("GET /api/store-info failed:", err);
