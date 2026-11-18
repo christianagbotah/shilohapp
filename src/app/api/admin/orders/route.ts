@@ -44,16 +44,21 @@ export async function GET(req: NextRequest) {
       })),
     }));
 
+    // Dashboard totals must cover the entire six-week sale, not only the
+    // most recent page of orders presented in the back office.
+    const [totalOrders, pendingReview, verifyingPayment, revenue, units] = await Promise.all([
+      db.order.count(),
+      db.order.count({ where: { status: "pending" } }),
+      db.order.count({ where: { paymentStatus: "verifying" } }),
+      db.order.aggregate({ where: { paymentStatus: "paid" }, _sum: { total: true } }),
+      db.orderItem.aggregate({ where: { order: { paymentStatus: "paid" } }, _sum: { quantity: true } }),
+    ]);
     const stats: AdminStats = {
-      totalOrders: orders.length,
-      pendingReview: orders.filter((o) => o.status === "pending").length,
-      verifyingPayment: orders.filter((o) => o.paymentStatus === "verifying").length,
-      paidRevenue: orders
-        .filter((o) => o.paymentStatus === "paid")
-        .reduce((n, o) => n + o.total, 0),
-      totalUnits: orders
-        .filter((o) => o.status !== "cancelled")
-        .reduce((n, o) => n + o.items.reduce((m, i) => m + i.quantity, 0), 0),
+      totalOrders,
+      pendingReview,
+      verifyingPayment,
+      paidRevenue: Math.round((revenue._sum.total ?? 0) * 100) / 100,
+      totalUnits: units._sum.quantity ?? 0,
     };
 
     return NextResponse.json({ orders: dtos, stats });
