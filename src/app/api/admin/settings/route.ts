@@ -28,7 +28,14 @@ const settingsSchema = z.object({
   hubtelClientSecret: z.string().trim().max(120).nullable().optional(),
   hubtelMerchantNumber: z.string().trim().max(60).optional(),
   hubtelMerchantName: z.string().trim().max(60).optional(),
-  siteUrl: z.string().trim().max(200).optional(),
+  siteUrl: z.string().trim().max(200).refine((value) => {
+    if (!value) return true;
+    try {
+      const parsed = new URL(value);
+      return parsed.protocol === "https:" && parsed.pathname === "/" &&
+        !parsed.username && !parsed.password && !parsed.search && !parsed.hash;
+    } catch { return false; }
+  }, "Enter a full HTTPS website origin with no extra path").optional(),
   // Hubtel SMS alerts
   smsClientId: z.string().trim().max(120).optional(),
   smsClientSecret: z.string().trim().max(120).nullable().optional(),
@@ -106,7 +113,8 @@ export async function GET(req: NextRequest) {
         active: Boolean(
           map.get("hubtel_client_id") &&
             map.get("hubtel_client_secret") &&
-            map.get("hubtel_merchant_number")
+            map.get("hubtel_merchant_number") &&
+            (map.get("site_url") || process.env.NEXT_PUBLIC_SITE_URL)
         ),
       },
       sms: {

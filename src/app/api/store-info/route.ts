@@ -17,6 +17,7 @@ export async function GET() {
       hubtelClientId,
       hubtelClientSecret,
       hubtelMerchantNumber,
+      siteUrl,
       adminPhone,
     ] = await Promise.all([
       getSetting("announcement"),
@@ -27,6 +28,7 @@ export async function GET() {
       getSetting("hubtel_client_id"),
       getSetting("hubtel_client_secret"),
       getSetting("hubtel_merchant_number"),
+      getSetting("site_url"),
       getSetting("admin_phone"),
     ]);
     const content = await loadSiteContent();
@@ -37,7 +39,7 @@ export async function GET() {
       shilohDates: shilohDates ?? STORE_INFO_DEFAULTS.shilohDates,
       shilohStart: shilohStart ?? STORE_INFO_DEFAULTS.shilohStart,
       /** True when the admin has activated Hubtel online checkout. */
-      hubtelActive: Boolean(hubtelClientId && hubtelClientSecret && hubtelMerchantNumber),
+      hubtelActive: Boolean(hubtelClientId && hubtelClientSecret && hubtelMerchantNumber && (siteUrl || process.env.NEXT_PUBLIC_SITE_URL)),
       /** Team contact number in international format for the WhatsApp
        *  click-to-chat button ("" when admin_phone is not configured). */
       supportPhone: adminPhone ? toInternationalGhPhone(adminPhone).replace("+", "") : "",

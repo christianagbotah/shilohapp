@@ -5,6 +5,8 @@
  */
 import { beforeAll, beforeEach, afterAll, describe, test, expect } from "bun:test";
 import { db } from "../src/lib/db";
+import { NextRequest } from "next/server";
+import { POST as initiatePayment } from "../src/app/api/payments/initiate/route";
 import { applyWebhookResult, finalizePaymentFromHubtel } from "../src/lib/payments";
 import { hashPassword, verifyAdminPassword } from "../src/lib/admin-auth";
 
@@ -120,6 +122,52 @@ describe("Hubtel money-state integrity", () => {
     ]);
     expect((await db.order.findUniqueOrThrow({ where: { id: order.id } })).paymentStatus).toBe("paid");
     expect(await db.paymentAudit.count({ where: { orderId: order.id, event: "hubtel_payment_verified" } })).toBe(1);
+  });
+
+  test("a fast callback cannot be overwritten when initiation returns", async () => {
+    const initial = await newOrder();
+    await db.paymentAttempt.deleteMany({ where: { orderId: initial.id } });
+    await db.order.update({
+      where: { id: initial.id },
+      data: { paymentStatus: "unpaid", paymentMethod: null, paymentToken: null },
+    });
+    await db.setting.upsert({
+      where: { key: "site_url" },
+      update: { value: "https://store.example" },
+      create: { key: "site_url", value: "https://store.example" },
+    });
+
+    globalThis.fetch = (async (input: RequestInfo | URL, options?: RequestInit) => {
+      if (String(input) !== "https://payproxyapi.hubtel.com/items/initiate") {
+        throw new Error("Unexpected outbound API: " + String(input));
+      }
+      const payload = JSON.parse(String(options?.body)) as { clientReference: string };
+      const order = await db.order.findUniqueOrThrow({
+        where: { code: CODE }, include: { items: true },
+      });
+      const attempt = await db.paymentAttempt.findUniqueOrThrow({
+        where: { reference: payload.clientReference },
+      });
+      mockStatus(payload.clientReference, 80, "Paid");
+      await applyWebhookResult(order, {
+        status: "success", clientReference: payload.clientReference,
+        transactionId: "mock-fast-callback", amount: 80,
+      }, attempt);
+      return new Response(JSON.stringify({
+        responseCode: "0000", checkoutUrl: "https://pay.hubtel.com/checkout/test",
+      }), { status: 200, headers: { "Content-Type": "application/json" } });
+    }) as unknown as typeof fetch;
+
+    const request = new NextRequest("https://store.example/api/payments/initiate", {
+      method: "POST", headers: { "content-type": "application/json" },
+      body: JSON.stringify({ code: CODE, phone: "0241234567" }),
+    });
+    const response = await initiatePayment(request);
+    const body = await response.json() as { alreadyPaid: boolean };
+    expect(response.status).toBe(200);
+    expect(body.alreadyPaid).toBe(true);
+    expect((await db.order.findUniqueOrThrow({ where: { code: CODE } })).paymentStatus).toBe("paid");
+    expect(await db.paymentAttempt.count({ where: { orderId: initial.id, status: "paid" } })).toBe(1);
   });
 
   test("underpayment reported by Hubtel never marks order paid", async () => {

@@ -13,6 +13,8 @@ following release gates are completed on the real hosted domain.
 1. BACK UP before a migration. Identify the exact live persistent SQLite
    volume, separate from deploy/release directories. Verify it contains
    existing orders. Do not overwrite it with the staging database.
+   Production DATABASE_URL must use a file:/absolute/persistent/path.db URL,
+   never a relative path resolved inside the standalone build directory.
 2. Configure a random, host-managed 32-byte base64
    SHILOH_SETTINGS_ENCRYPTION_KEY. Never commit it or store it in SQLite.
    Configure the exact HTTPS site_url/NEXT_PUBLIC_SITE_URL.
