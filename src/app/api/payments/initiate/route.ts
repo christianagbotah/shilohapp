@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { db } from "@/lib/db";
 import { initiateCheckout } from "@/lib/hubtel";
+import { clientIp, rateLimit } from "@/lib/rate-limit";
 
 export const dynamic = "force-dynamic";
 
@@ -17,6 +18,15 @@ const initiateSchema = z.object({
  */
 export async function POST(req: NextRequest) {
   try {
+    // Each call opens a Hubtel checkout session — throttle abuse.
+    const limited = rateLimit(`pay:${clientIp(req)}`, 12, 10 * 60_000);
+    if (!limited.ok) {
+      return NextResponse.json(
+        { error: "Too many payment attempts just now — please wait a few minutes and try again." },
+        { status: 429, headers: { "Retry-After": String(limited.retryAfterSec) } }
+      );
+    }
+
     const parsed = initiateSchema.safeParse(await req.json());
     if (!parsed.success) {
       return NextResponse.json({ error: "Invalid request" }, { status: 400 });

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { db } from "@/lib/db";
 import { getAdminToken, hashPassword } from "@/lib/admin-auth";
+import { clientIp, rateLimit } from "@/lib/rate-limit";
 
 export const dynamic = "force-dynamic";
 
@@ -9,6 +10,15 @@ const loginSchema = z.object({ password: z.string().min(1).max(100) });
 
 export async function POST(req: NextRequest) {
   try {
+    // Slow down brute-force attempts on the back-office password.
+    const limited = rateLimit(`login:${clientIp(req)}`, 10, 10 * 60_000);
+    if (!limited.ok) {
+      return NextResponse.json(
+        { error: "Too many login attempts — try again in a few minutes." },
+        { status: 429, headers: { "Retry-After": String(limited.retryAfterSec) } }
+      );
+    }
+
     const parsed = loginSchema.safeParse(await req.json());
     if (!parsed.success) {
       return NextResponse.json({ error: "Password required" }, { status: 400 });

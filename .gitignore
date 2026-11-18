@@ -1,5 +1,10 @@
 # See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 
+# local database (contains admin password hash, Hubtel/SMS secrets, customer PII)
+/db/
+# agent tool output
+/tool-results/
+
 # dependencies
 node_modules
 /.pnp

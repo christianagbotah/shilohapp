@@ -5,6 +5,7 @@ import { db } from "@/lib/db";
 import { generateOrderCode, normalizeGhPhone } from "@/lib/format";
 import { notifyOrderPlaced } from "@/lib/notify";
 import { toNotifyOrder } from "@/lib/payments";
+import { clientIp, rateLimit } from "@/lib/rate-limit";
 import type { OrderDTO } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
@@ -26,6 +27,15 @@ const createOrderSchema = z.object({
 
 export async function POST(req: NextRequest) {
   try {
+    // Order placement triggers paid SMS alerts, so throttle abuse.
+    const limited = rateLimit(`order:${clientIp(req)}`, 6, 10 * 60_000);
+    if (!limited.ok) {
+      return NextResponse.json(
+        { error: "Too many orders from this device just now — please wait a few minutes and try again." },
+        { status: 429, headers: { "Retry-After": String(limited.retryAfterSec) } }
+      );
+    }
+
     const body = await req.json();
     const parsed = createOrderSchema.safeParse(body);
     if (!parsed.success) {

@@ -96,12 +96,39 @@ export async function applyWebhookResult(
       return { paymentStatus: "verifying", hubtelStatus: "unknown", alreadyPaid: false };
     }
 
+    // Anti-forgery: the callback endpoint is public, so a claimed "success"
+    // is never trusted on its own — confirm it against Hubtel's transaction
+    // API before any money state changes. If Hubtel is unreachable or
+    // disagrees, park the order in "verifying"; the storefront polling,
+    // the track dialog and the back office all resolve it from there.
+    const verified = await verifyHubtelTransaction(order.code);
+    if (!verified.ok) {
+      console.error(
+        `Hubtel webhook claimed success for ${order.code} but re-verification failed (${verified.error}) — order kept in verifying`
+      );
+      await db.order.updateMany({
+        where: { id: order.id, paymentStatus: { not: "paid" } },
+        data: { paymentStatus: "verifying" },
+      });
+      return { paymentStatus: "verifying", hubtelStatus: "unknown", alreadyPaid: false };
+    }
+    if (verified.status !== "success") {
+      console.error(
+        `Hubtel webhook claimed success for ${order.code} but Hubtel reports "${verified.raw}" — order kept in verifying`
+      );
+      await db.order.updateMany({
+        where: { id: order.id, paymentStatus: { not: "paid" } },
+        data: { paymentStatus: "verifying" },
+      });
+      return { paymentStatus: "verifying", hubtelStatus: verified.status, alreadyPaid: false };
+    }
+
     const txNote = info.transactionId ? `Hubtel tx ${info.transactionId}` : "Hubtel webhook";
     await db.order.updateMany({
       where: { id: order.id },
       data: { paymentToken: info.clientReference || order.paymentToken },
     });
-    console.log(`Hubtel webhook: marking ${order.code} paid (${txNote})`);
+    console.log(`Hubtel webhook: marking ${order.code} paid (${txNote}, re-verified)`);
     await markOrderPaid(order);
     return { paymentStatus: "paid", hubtelStatus: "success", alreadyPaid: false };
   }
