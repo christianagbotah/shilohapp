@@ -1,5 +1,6 @@
 generator client {
   provider = "prisma-client-js"
+  binaryTargets = ["native", "rhel-openssl-3.0.x", "debian-openssl-3.0.x"]
 }
 
 datasource db {
@@ -46,6 +47,8 @@ model Order {
   updatedAt     DateTime    @updatedAt
   items         OrderItem[]
   notifications NotificationLog[]
+  paymentAttempts PaymentAttempt[]
+  paymentAudits   PaymentAudit[]
 }
 
 model OrderItem {
@@ -87,4 +90,45 @@ model NotificationLog {
   orderId   String?
   order     Order?   @relation(fields: [orderId], references: [id], onDelete: SetNull)
   createdAt DateTime @default(now())
+}
+
+// A separate reference is created for each Hubtel checkout attempt.
+// Never recycle a reference after a failed or ambiguous charge.
+model PaymentAttempt {
+  id                 String   @id @default(cuid())
+  orderId            String
+  order              Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  reference          String   @unique
+  merchantNumber     String
+  expectedPesewas    Int
+  status             String   @default("initiating") // initiating | open | unknown | paid | failed | cancelled
+  checkoutUrl        String?
+  hubtelTransactionId String?
+  verifiedAmount     Float?
+  lastCheckedAt      DateTime?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+  @@index([orderId, createdAt])
+  @@index([status, createdAt])
+}
+
+// Store only hashes of randomly generated browser session tokens.
+model AdminSession {
+  id         String   @id @default(cuid())
+  tokenHash  String   @unique
+  createdAt  DateTime @default(now())
+  expiresAt  DateTime
+  @@index([expiresAt])
+}
+
+// Immutable payment-related audit entries for reconciliation and manual review.
+model PaymentAudit {
+  id          String   @id @default(cuid())
+  orderId     String
+  order       Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  event       String
+  reference   String?
+  detail      String?
+  createdAt   DateTime @default(now())
+  @@index([orderId, createdAt])
 }

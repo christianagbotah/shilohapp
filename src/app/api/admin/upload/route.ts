@@ -1,81 +1,69 @@
 import { NextRequest, NextResponse } from "next/server";
-import { mkdir, readdir, writeFile } from "fs/promises";
-import path from "path";
+import { mkdir, readdir, writeFile } from "node:fs/promises";
+import { randomBytes } from "node:crypto";
+import path from "node:path";
+import sharp from "sharp";
 import { isAdminRequest } from "@/lib/admin-auth";
 
 export const dynamic = "force-dynamic";
 
-const ALLOWED: Record<string, string> = {
-  "image/jpeg": "jpg",
-  "image/png": "png",
-  "image/webp": "webp",
-};
-const MAX_BYTES = 4 * 1024 * 1024; // 4 MB
+const ALLOWED = new Set(["image/jpeg", "image/png", "image/webp"]);
+const MAX_BYTES = 4 * 1024 * 1024;
+const MAX_PIXELS = 24_000_000;
 const PRODUCTS_DIR = path.join(process.cwd(), "public", "products");
 
-/**
- * GET /api/admin/upload — list images already available in /public/products
- * so the product editor can offer them as quick picks.
- */
 export async function GET(req: NextRequest) {
-  if (!(await isAdminRequest(req))) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  if (!(await isAdminRequest(req))) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   try {
     await mkdir(PRODUCTS_DIR, { recursive: true });
     const files = await readdir(PRODUCTS_DIR);
-    const images = files
-      .filter((f) => /\.(jpe?g|png|webp)$/i.test(f))
-      .sort()
-      .map((f) => `/products/${f}`);
-    return NextResponse.json({ images });
+    return NextResponse.json({
+      images: files.filter((name) => /\.(jpe?g|png|webp)$/i.test(name)).sort()
+        .map((name) => "/products/" + name),
+    });
   } catch (err) {
-    console.error("GET /api/admin/upload failed:", err);
-    return NextResponse.json({ error: "Failed to list images" }, { status: 500 });
+    console.error("Admin image listing failed", err);
+    return NextResponse.json({ error: "Image gallery is unavailable" }, { status: 500 });
   }
 }
 
-/**
- * POST /api/admin/upload — multipart image upload, stored in /public/products.
- * Returns the public path to use as the product's image / gallery src.
- */
 export async function POST(req: NextRequest) {
-  if (!(await isAdminRequest(req))) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  if (!(await isAdminRequest(req))) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   try {
+    // Prevent obviously oversized multipart requests before loading file bytes.
+    const bodySize = Number(req.headers.get("content-length"));
+    if (Number.isFinite(bodySize) && bodySize > MAX_BYTES + 512 * 1024) {
+      return NextResponse.json({ error: "Upload exceeds the 4 MB file limit" }, { status: 413 });
+    }
     const form = await req.formData();
     const file = form.get("file");
-    if (!(file instanceof File)) {
-      return NextResponse.json({ error: "No file provided" }, { status: 400 });
+    if (!(file instanceof File)) return NextResponse.json({ error: "Choose an image" }, { status: 400 });
+    if (!ALLOWED.has(file.type)) {
+      return NextResponse.json({ error: "Use JPEG, PNG or WebP" }, { status: 415 });
     }
-    const ext = ALLOWED[file.type];
-    if (!ext) {
-      return NextResponse.json(
-        { error: "Only JPG, PNG or WebP images are supported" },
-        { status: 415 }
-      );
-    }
-    const buffer = Buffer.from(await file.arrayBuffer());
-    if (buffer.length > MAX_BYTES) {
-      return NextResponse.json({ error: "Image must be 4 MB or smaller" }, { status: 413 });
-    }
+    if (file.size > MAX_BYTES) return NextResponse.json({ error: "Maximum image size is 4 MB" }, { status: 413 });
 
+    const bytes = Buffer.from(await file.arrayBuffer());
+    if (bytes.length > MAX_BYTES) return NextResponse.json({ error: "Image exceeds upload limit" }, { status: 413 });
+    // MIME headers and extensions are untrusted. Decode and re-encode to
+    // remove EXIF and any trailing executable payloads.
+    const parser = sharp(bytes, { limitInputPixels: MAX_PIXELS, failOn: "error" });
+    const meta = await parser.metadata();
+    if (!meta.width || !meta.height || !["jpeg", "png", "webp"].includes(meta.format || "")) {
+      return NextResponse.json({ error: "Image content could not be validated" }, { status: 415 });
+    }
+    const output = await parser.rotate()
+      .resize(1800, 1800, { fit: "inside", withoutEnlargement: true })
+      .webp({ quality: 86, effort: 4 }).toBuffer();
+
+    const slug = file.name.replace(/\.[^.]+$/, "").toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 35) || "image";
+    const filename = [Date.now(), randomBytes(6).toString("hex"), slug].join("-") + ".webp";
     await mkdir(PRODUCTS_DIR, { recursive: true });
-    // Keep a readable slug from the original name, guarantee uniqueness with a timestamp
-    const slug =
-      file.name
-        .replace(/\.[^.]+$/, "")
-        .toLowerCase()
-        .replace(/[^a-z0-9]+/g, "-")
-        .replace(/^-+|-+$/g, "")
-        .slice(0, 40) || "image";
-    const filename = `${Date.now()}-${slug}.${ext}`;
-    await writeFile(path.join(PRODUCTS_DIR, filename), buffer);
-
-    return NextResponse.json({ path: `/products/${filename}` }, { status: 201 });
+    await writeFile(path.join(PRODUCTS_DIR, filename), output, { flag: "wx" });
+    return NextResponse.json({ path: "/products/" + filename }, { status: 201 });
   } catch (err) {
-    console.error("POST /api/admin/upload failed:", err);
-    return NextResponse.json({ error: "Failed to upload image" }, { status: 500 });
+    console.error("Admin image upload failed", err);
+    return NextResponse.json({ error: "Image could not be processed; try a smaller valid picture" }, { status: 422 });
   }
 }

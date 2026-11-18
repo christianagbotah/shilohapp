@@ -48,7 +48,7 @@ function OrderCard({ order, hubtelActive }: { order: OrderDTO; hubtelActive: boo
   const [payError, setPayError] = useState<string | null>(null);
 
   // Unpaid orders can be settled right here via Hubtel's secure checkout
-  const canPay = hubtelActive && !cancelled && order.paymentStatus !== "paid";
+  const canPay = hubtelActive && !cancelled && order.paymentStatus === "unpaid";
 
   const payNow = async () => {
     setPaying(true);
@@ -143,6 +143,12 @@ function OrderCard({ order, hubtelActive }: { order: OrderDTO; hubtelActive: boo
         </ol>
       )}
 
+      {order.paymentStatus === "verifying" ? (
+        <p className="mt-3 rounded-xl border border-amber-500/40 bg-amber-500/10 p-3 text-sm text-amber-300" role="status">
+          Hubtel is still verifying this payment. Please do not pay again; check back shortly or contact the team with your order code.
+        </p>
+      ) : null}
+
       {canPay ? (
         <div className="mt-3 flex flex-col gap-1.5">
           <Button
@@ -206,6 +212,7 @@ export function TrackOrderDialog() {
   const { data: info } = useStoreInfo();
 
   const [query, setQuery] = useState("");
+  const [lookupPhone, setLookupPhone] = useState("");
   const [loading, setLoading] = useState(false);
   const [searched, setSearched] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -215,10 +222,12 @@ export function TrackOrderDialog() {
   useEffect(() => {
     if (trackOpen) {
       setQuery(prefill);
-      setHistory(getOrderHistory());
-      if (prefill) {
-        // auto-search when opened with a prefill
-        void search(prefill);
+      const recent = getOrderHistory();
+      setHistory(recent);
+      const saved = recent.find((x) => x.code === prefill);
+      if (saved) {
+        setLookupPhone(saved.phone);
+        void search(saved.code, saved.phone);
       }
     } else {
       setSearched(false);
@@ -228,17 +237,17 @@ export function TrackOrderDialog() {
     }
   }, [trackOpen, prefill]);
 
-  const search = async (q: string) => {
-    const trimmed = q.trim();
-    if (trimmed.length < 4) {
-      setError("Enter your order code (e.g. SHL-7K2P9Q) or phone number.");
+  const search = async (q: string, phone = lookupPhone) => {
+    const code = q.trim().toUpperCase();
+    if (!/^SHL-[A-HJ-NP-Z2-9]{6}$/.test(code) || !phone.trim()) {
+      setError("Enter the SHL order code and the phone number used at checkout.");
       return;
     }
     setLoading(true);
     setError(null);
     try {
       const res = await fetchJson<{ orders: OrderDTO[] }>(
-        `/api/orders/track?q=${encodeURIComponent(trimmed)}`
+        `/api/orders/track?code=${encodeURIComponent(code)}&phone=${encodeURIComponent(phone.trim())}`
       );
       setOrders(res.orders);
       setSearched(true);
@@ -258,13 +267,13 @@ export function TrackOrderDialog() {
             Track Your Order
           </DialogTitle>
           <DialogDescription>
-            Enter your order code or the phone number you ordered with.
+            Enter your order code and checkout phone for a private status lookup.
           </DialogDescription>
         </DialogHeader>
 
         <div className="flex flex-col gap-4 p-5">
           <form
-            className="flex gap-2"
+            className="flex flex-col gap-2 sm:flex-row"
             onSubmit={(e) => {
               e.preventDefault();
               void search(query);
@@ -273,9 +282,18 @@ export function TrackOrderDialog() {
             <Input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="SHL-XXXXXX or 024 123 4567"
-              aria-label="Order code or phone number"
+              placeholder="SHL-XXXXXX"
+              aria-label="Order code"
               className="h-12 rounded-xl border-border bg-background/60 font-mono text-base tracking-wide"
+            />
+            <Input
+              value={lookupPhone}
+              onChange={(e) => setLookupPhone(e.target.value)}
+              placeholder="024 123 4567"
+              type="tel"
+              autoComplete="tel"
+              aria-label="Phone used at checkout"
+              className="h-12 rounded-xl border-border bg-background/60 text-base"
             />
             <Button
               type="submit"
@@ -321,8 +339,9 @@ export function TrackOrderDialog() {
                     <button
                       type="button"
                       onClick={() => {
-                        setQuery(h.phone);
-                        void search(h.phone);
+                        setQuery(h.code);
+                        setLookupPhone(h.phone);
+                        void search(h.code, h.phone);
                       }}
                       className="card-hover flex w-full cursor-pointer items-center justify-between gap-3 rounded-xl border border-border bg-card p-3 text-left"
                     >
@@ -349,7 +368,7 @@ export function TrackOrderDialog() {
 
           {searched && !error && orders.length === 0 ? (
             <p className="rounded-xl border border-dashed border-border p-4 text-center text-sm text-muted-foreground">
-              No orders found. Double-check your code or phone number.
+              No matching order found. Double-check both your order code and phone number.
             </p>
           ) : null}
 

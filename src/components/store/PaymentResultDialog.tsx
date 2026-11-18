@@ -67,15 +67,9 @@ export function PaymentResultDialog() {
     // inside the effect body).
     const t = setTimeout(() => {
       if (codeParam) setCode(codeParam.toUpperCase());
-      if (payment === "success" || payment === "return" || payment === "processing") {
-        setPhase("checking");
-      } else if (payment === "cancelled") {
-        setPhase("cancelled");
-      } else if (payment === "failed") {
-        setPhase("failed");
-      } else {
-        setPhase("unknown");
-      }
+      // The browser return URL does not prove money moved.
+      setPhase("checking");
+      pollCount.current = 0;
       setOpen(true);
     }, 0);
     return () => clearTimeout(t);
@@ -93,13 +87,15 @@ export function PaymentResultDialog() {
       }
       pollCount.current += 1;
       try {
-        const res = await fetchJson<{ paymentStatus: string; total: number }>(
+        const res = await fetchJson<{ paymentStatus: string; total: number; attemptStatus: string | null }>(
           `/api/payments/result?code=${encodeURIComponent(code)}`
         );
         if (cancelled) return;
         setTotal(res.total);
         if (res.paymentStatus === "paid") {
           setPhase("paid");
+        } else if (res.attemptStatus === "cancelled" || res.attemptStatus === "failed") {
+          setPhase(res.attemptStatus);
         }
       } catch {
         /* keep polling — network blips happen */
@@ -173,13 +169,13 @@ export function PaymentResultDialog() {
     phase === "paid"
       ? "Your order is confirmed and being processed. A confirmation SMS with your order details is on its way."
       : phase === "checking"
-        ? "Hang tight — we're verifying with Hubtel. This usually takes a few seconds."
+        ? "We are checking your transaction with Hubtel. You can leave and track your order later."
         : phase === "processing"
           ? "Hubtel is still processing your payment. Your order updates automatically the moment it clears — you can track it any time."
           : phase === "cancelled"
             ? "You cancelled the payment at checkout. Your order is saved — you can try again whenever you're ready."
             : phase === "failed"
-              ? "The payment could not be completed. No money left your wallet if it failed. You can try again in a moment."
+              ? "Hubtel reported an unsuccessful payment. If your wallet was debited, contact our team before trying again."
               : "We couldn't determine the payment outcome. Your order is safe — track it with your order code.";
 
   return (
@@ -220,7 +216,7 @@ export function PaymentResultDialog() {
             </p>
           ) : null}
 
-          {phase === "cancelled" || phase === "failed" || phase === "processing" || phase === "unknown" ? (
+          {phase === "cancelled" || phase === "failed" ? (
             <div className="flex flex-col gap-2">
               <Button
                 onClick={retryPayment}

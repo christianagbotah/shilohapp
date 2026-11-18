@@ -123,7 +123,7 @@ export const DEFAULT_SITE_CONTENT: SiteContent = {
       },
       {
         title: "Pay & get instant confirmation",
-        body: "Pay on Hubtel's secure page — MTN MoMo, Telecel Cash, AirtelTigo Money or card. They text a one-time code (OTP) to the number you're paying from; input the digits, approve the prompt on your phone, and your order confirms instantly with SMS alerts keeping you posted.",
+        body: "Pay on Hubtel's secure page — MTN MoMo, Telecel Cash, AirtelTigo Money or card. Follow Hubtel's instructions and approve the payment. We verify the transaction before marking your order paid.",
       },
     ],
   },
@@ -132,15 +132,15 @@ export const DEFAULT_SITE_CONTENT: SiteContent = {
     title: "Payment,",
     titleAccent: "made easy",
     subtitle:
-      "Pick your merch, tap Pay Now and Hubtel's secure checkout takes it from there — enter the one-time code they text you, approve the prompt on your phone, and your order is confirmed instantly.",
+      "Pick your merch, tap Pay Now and Hubtel's secure checkout takes it from there — complete the steps for your chosen wallet or card, then check the verified status using your order reference.",
     features: [
       {
         title: "Every wallet & card",
         body: "MTN MoMo, Telecel Cash, AirtelTigo Money, Visa and Mastercard — all in one secure checkout.",
       },
       {
-        title: "Instant SMS updates",
-        body: "You get an SMS with your order details immediately, and another the moment payment is confirmed.",
+        title: "Order status updates",
+        body: "Track payment and fulfillment status with your order code and phone. SMS alerts are sent when enabled.",
       },
       {
         title: "Bank-grade security",
@@ -152,7 +152,7 @@ export const DEFAULT_SITE_CONTENT: SiteContent = {
       "Enter your name & phone — you'll be taken to **Hubtel's secure page**",
       "Choose **MoMo, wallet or card** — Hubtel texts a **one-time code (OTP)** to the number you're paying from",
       "Input the **OTP digits** into the fields on Hubtel's page — the approval prompt then appears on your phone",
-      "Payment confirmed — **SMS alerts** sent to you and our team instantly",
+      "Payment confirmed — your **order status** is updated after provider verification",
     ],
     methods: ["MTN MoMo", "Telecel Cash", "AT Money", "Visa", "Mastercard"],
     buttonLabel: "Start an order",

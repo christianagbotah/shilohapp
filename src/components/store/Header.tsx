@@ -1,6 +1,6 @@
 "use client";
 
-import { ShoppingBag, Truck } from "lucide-react";
+import { ShoppingBag, Truck, PackageSearch } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useCart, cartCount } from "@/store/cart";
 import { useUi } from "@/store/ui";
@@ -71,10 +71,12 @@ export function Header() {
             <Button
               variant="ghost"
               size="sm"
-              className="hidden rounded-full text-muted-foreground hover:text-foreground sm:inline-flex"
+              className="h-10 rounded-full px-2 text-muted-foreground hover:text-foreground sm:px-3"
               onClick={() => setTrackOpen(true)}
             >
-              Track Order
+              <PackageSearch className="h-4 w-4 sm:mr-1.5" aria-hidden />
+              <span className="hidden sm:inline">Track Order</span>
+              <span className="sr-only sm:hidden">Track Order</span>
             </Button>
             <Button
               onClick={() => setCartOpen(true)}

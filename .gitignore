@@ -39,6 +39,7 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
+!.env.example
 
 # vercel
 .vercel
@@ -59,3 +60,8 @@ prompt
 server.log
 # Skills directory
 /skills/upload/
+
+# isolated test databases (never commit payment test data)
+/prisma/*.db
+/prisma/*.db-shm
+/prisma/*.db-wal

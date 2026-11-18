@@ -2,7 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { after } from "next/server";
 import { z } from "zod";
 import { db } from "@/lib/db";
-import { generateOrderCode, normalizeGhPhone } from "@/lib/format";
+import { normalizeGhPhone } from "@/lib/format";
+import { randomInt } from "node:crypto";
+const ORDER_ALPHABET = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
+function generateOrderCode() { return "SHL-" + Array.from({length: 6}, () => ORDER_ALPHABET[randomInt(ORDER_ALPHABET.length)]).join(""); }
 import { notifyOrderPlaced } from "@/lib/notify";
 import { toNotifyOrder } from "@/lib/payments";
 import { clientIp, rateLimit } from "@/lib/rate-limit";

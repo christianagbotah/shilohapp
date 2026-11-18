@@ -140,6 +140,7 @@ const inputCls = "h-12 rounded-xl border-border bg-background/60 text-base";
 
 export function AdminSettings({ token }: { token: string }) {
   const queryClient = useQueryClient();
+  const setAdminToken = useUi((state) => state.setAdminToken);
   const { toast } = useToast();
 
   const [loading, setLoading] = useState(true);
@@ -243,6 +244,11 @@ export function AdminSettings({ token }: { token: string }) {
         body: JSON.stringify(body),
       });
       await queryClient.invalidateQueries({ queryKey: ["store-info"] });
+      if (key === "password") {
+        toast({ title: "Password updated", description: "All sessions were revoked. Sign in again." });
+        setAdminToken(null);
+        return;
+      }
       // Refresh so the "configured" pills update immediately.
       const res = await fetchJson<SettingsResponse>("/api/admin/settings", {
         headers: { "x-admin-token": token },
@@ -280,7 +286,7 @@ export function AdminSettings({ token }: { token: string }) {
         hint?: string;
       };
       if (res.ok && data.success) {
-        toast({ title: "Hubtel connected", description: data.message });
+        toast({ title: "Hubtel checkout API responding", description: "Complete a real payment and transaction-status check before launch." });
       } else {
         toast({
           title: "Hubtel test failed",
@@ -315,7 +321,7 @@ export function AdminSettings({ token }: { token: string }) {
         title="Hubtel Online Payment"
         subtitle="Activate one-tap checkout — Hubtel collects MoMo, wallets & cards"
         gold
-        status={{ label: hubtelActive ? "Active" : "Not configured", ok: hubtelActive }}
+        status={{ label: hubtelActive ? "Configured" : "Not configured", ok: hubtelActive }}
       >
         <div className="grid gap-4 sm:grid-cols-2">
           <Field
@@ -819,7 +825,7 @@ export function AdminSettings({ token }: { token: string }) {
             type="password"
             value={newPassword}
             onChange={(e) => setNewPassword(e.target.value)}
-            placeholder="At least 6 characters"
+            placeholder="At least 12 characters"
             className={inputCls}
             autoComplete="new-password"
           />
@@ -837,8 +843,8 @@ export function AdminSettings({ token }: { token: string }) {
         </Field>
         <Button
           onClick={async () => {
-            if (newPassword.length < 6) {
-              toast({ title: "Password too short", description: "Use at least 6 characters.", variant: "destructive" });
+            if (newPassword.length < 12) {
+              toast({ title: "Password too short", description: "Use at least 12 characters.", variant: "destructive" });
               return;
             }
             if (newPassword !== confirmPassword) {

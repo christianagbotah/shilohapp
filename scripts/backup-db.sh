@@ -1,31 +1,48 @@
 #!/usr/bin/env bash
-# Daily backup of the Shiloh merch SQLite database.
-#
-# Creates a consistent snapshot (SQLite VACUUM INTO) while the dev server
-# keeps running, verifies the snapshot is readable, and prunes old copies
-# so only the newest 14 remain. Backups live OUTSIDE the repository
-# (/home/z/shiloh-backups) so repo tooling can never delete them.
-# Safe to run any time; exits non-zero on any failure so schedulers can
-# detect a problem.
+# Consistent SQLite snapshot; use persistent, independently backed storage.
 set -euo pipefail
-cd "$(dirname "$0")/.."
+umask 077
 
-if [ ! -f db/custom.db ]; then
-  echo "ERROR: db/custom.db not found" >&2
+ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+DB_FILE="${SHILOH_DB_PATH:-$ROOT/db/custom.db}"
+OUT_DIR="${SHILOH_BACKUP_DIR:-$HOME/shiloh-backups}"
+DB_FILE="$(realpath -m "$DB_FILE")"
+OUT_DIR="$(realpath -m "$OUT_DIR")"
+
+if [ ! -f "$DB_FILE" ]; then
+  echo "Backup ERROR: SQLite file not found: $DB_FILE" >&2
   exit 1
 fi
-
-OUT_DIR="/home/z/shiloh-backups"
+case "$OUT_DIR" in
+  "$ROOT"|"$ROOT"/*)
+    echo "Backup ERROR: backups must be outside the deployment" >&2
+    exit 1
+    ;;
+esac
 mkdir -p "$OUT_DIR"
-F="$OUT_DIR/custom-$(date +%Y%m%d-%H%M).db"
-
-# Snapshot (readonly connection — the live database is never written to).
-F="$F" bun -e 'const {Database}=require("bun:sqlite");const d=new Database("db/custom.db",{readonly:true});d.exec("VACUUM INTO \x27"+process.env.F+"\x27");d.close();'
-
-# Verify the snapshot opens and reports sane row counts.
-bun -e "const {Database}=require('bun:sqlite');const d=new Database(process.argv[1],{readonly:true});const c=(t)=>d.query('SELECT COUNT(*) n FROM \"'+t+'\"').get().n;console.log('verified '+process.argv[1]+' — Product: '+c('Product')+' Order: '+c('Order')+' Setting: '+c('Setting'));d.close();" "$F"
-
-# Prune: keep the newest 14 backups.
-ls -t "$OUT_DIR"/custom-*.db | tail -n +15 | xargs -r rm --
-echo "kept: $(ls "$OUT_DIR"/custom-*.db | wc -l) backup(s) in $OUT_DIR"
-
+F="$OUT_DIR/custom-$(date -u +%Y%m%d-%H%M%S).db"
+if [ -e "$F" ]; then
+  echo "Backup ERROR: snapshot path already exists" >&2
+  exit 1
+fi
+DB_FILE="$DB_FILE" SNAPSHOT="$F" bun -e '
+const {Database}=require("bun:sqlite");
+const db=new Database(process.env.DB_FILE,{readonly:true});
+const target=process.env.SNAPSHOT.replaceAll("\x27","\x27\x27");
+db.exec("VACUUM INTO \x27"+target+"\x27");db.close();
+'
+SNAPSHOT="$F" bun -e '
+const {Database}=require("bun:sqlite");
+const db=new Database(process.env.SNAPSHOT,{readonly:true});
+const row=db.query("PRAGMA quick_check").get();
+if (!row || Object.values(row)[0] !== "ok") throw new Error("SQLite integrity check failed");
+for(const name of ["Product","Order","Setting","PaymentAttempt","PaymentAudit"]) {
+  const count=db.query("SELECT COUNT(*) AS n FROM \""+name+"\"").get();
+  console.log(name+": "+count.n);
+}
+db.close();
+'
+find "$OUT_DIR" -maxdepth 1 -type f -name 'custom-*.db' -printf '%T@ %p\n' \
+  | sort -nr | tail -n +15 | cut -d' ' -f2- | while IFS= read -r old; do rm -- "$old"; done
+echo "Backup verified: $F"
+echo "IMPORTANT: replicate snapshots to off-server storage."

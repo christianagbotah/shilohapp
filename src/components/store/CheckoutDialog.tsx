@@ -17,7 +17,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useCart, cartTotal } from "@/store/cart";
 import { useUi } from "@/store/ui";
 import { useMounted } from "@/hooks/use-mounted";
-import { fetchJson } from "@/hooks/use-store-data";
+import { fetchJson, useStoreInfo } from "@/hooks/use-store-data";
 import { rememberOrder } from "@/lib/order-history";
 import { formatGhs } from "@/lib/format";
 import type { OrderDTO } from "@/lib/types";
@@ -36,6 +36,8 @@ export function CheckoutDialog() {
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const mounted = useMounted();
+  const { data: info } = useStoreInfo();
+  const onlinePaymentReady = !!info?.hubtelActive;
 
   const total = mounted ? cartTotal(items) : 0;
   const itemCount = mounted ? items.reduce((n, i) => n + i.quantity, 0) : 0;
@@ -97,18 +99,33 @@ export function CheckoutDialog() {
         placedAt: new Date().toISOString(),
       });
 
+      if (Math.abs(res.order.total - total) >= 0.01) {
+        clear();
+        setCheckoutOpen(false);
+        setPlacedOrderNotice("Your order is saved, but a catalogue price changed. Review the final amount before paying from Track Order.");
+        setPlacedOrder(res.order);
+        return;
+      }
+      if (!onlinePaymentReady) {
+        clear();
+        setCheckoutOpen(false);
+        setPlacedOrderNotice("Your order is saved. Online checkout is not active yet; our team will contact you with verified payment instructions.");
+        setPlacedOrder(res.order);
+        return;
+      }
+
       // One tap: order is created, hand the customer straight to Hubtel's
       // secure checkout. If Hubtel can't start a session we keep the order
       // and let our team arrange payment — the customer never loses out.
       try {
-        const pay = await fetchJson<{ url: string }>("/api/payments/initiate", {
+        const pay = await fetchJson<{ url: string; alreadyPaid?: boolean }>("/api/payments/initiate", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ code: res.order.code, phone: normalized }),
         });
         clear();
         setCheckoutOpen(false);
-        window.location.href = pay.url;
+        window.location.href = pay.alreadyPaid ? `/?payment=return&code=${encodeURIComponent(res.order.code)}` : pay.url;
         return;
       } catch (err) {
         console.error("Payment initiation failed:", err);
@@ -241,11 +258,9 @@ export function CheckoutDialog() {
           <div className="flex items-start gap-2.5 rounded-xl border border-gold/30 bg-gold/10 p-3.5 text-xs leading-relaxed text-muted-foreground">
             <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-gold" aria-hidden />
             <span>
-              You&apos;ll be taken to <span className="font-semibold text-foreground">Hubtel&apos;s secure checkout</span> to pay
-              with MTN MoMo, Telecel Cash, AirtelTigo Money or card. Hubtel texts a{" "}
-              <span className="font-semibold text-foreground">one-time code (OTP)</span> to the number
-              you&apos;re paying from — input the digits into the fields on their page, then approve the
-              prompt on your phone. Your order is confirmed the moment payment succeeds.
+              {onlinePaymentReady
+                ? "You'll be redirected to Hubtel's secure checkout to choose MoMo or card. Follow Hubtel's instructions. Your order only becomes paid after verification."
+                : "Online payment is currently unavailable. You can place your order and our team will contact you with official payment instructions."}
             </span>
           </div>
 
@@ -257,17 +272,17 @@ export function CheckoutDialog() {
             {submitting ? (
               <>
                 <Loader2 className="mr-2 h-4.5 w-4.5 animate-spin" aria-hidden />
-                Starting secure payment…
+                Saving your order…
               </>
             ) : (
               <>
                 <Smartphone className="mr-2 h-4 w-4" aria-hidden />
-                Pay Now — {formatGhs(total)}
+                {onlinePaymentReady ? `Pay securely — ${formatGhs(total)}` : `Place order — ${formatGhs(total)}`}
               </>
             )}
           </Button>
           <p className="text-center text-xs text-muted-foreground">
-            Secured by Hubtel • MTN MoMo • Telecel Cash • AT Money • Cards
+            {onlinePaymentReady ? "Payment handled securely by Hubtel • MoMo • Cards" : "No money is charged when you place this order"}
           </p>
         </form>
       </DialogContent>

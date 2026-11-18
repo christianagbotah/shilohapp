@@ -29,12 +29,12 @@ export function AdminGate() {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetchJson<{ token: string }>("/api/admin/login", {
+      await fetchJson<{ ok: boolean }>("/api/admin/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ password }),
       });
-      setAdminToken(res.token);
+      setAdminToken("session");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Login failed");
     } finally {

@@ -29,7 +29,7 @@ import { formatGhs } from "@/lib/format";
 // ---------------------------------------------------------------------------
 
 const INITIATE_URL = "https://payproxyapi.hubtel.com/items/initiate";
-const VERIFY_TXN_BASE = "https://api.hubtel.com/v1/merchant/transactions";
+const VERIFY_TXN_BASE = "https://api-txnstatus.hubtel.com/transactions";
 const SEND_SMS_URL = "https://sms.hubtel.com/v1/messages/batch/simple/send";
 
 /** Every outbound call aborts after this so order placement is never blocked. */
@@ -95,7 +95,7 @@ function basicAuth(clientId: string, clientSecret: string): string {
 
 export type InitiateResult =
   | { ok: true; url: string; token: string }
-  | { ok: false; error: string };
+  | { ok: false; error: string; ambiguous: boolean };
 
 export type CheckoutOrder = {
   code: string;
@@ -112,21 +112,37 @@ export type CheckoutOrder = {
  */
 export async function initiateCheckout(
   order: CheckoutOrder,
-  origin: string
+  origin: string,
+  reference: string
 ): Promise<InitiateResult> {
   const config = await getHubtelPaymentConfig();
   if (!config) {
-    return { ok: false, error: "Hubtel payment is not configured" };
+    return { ok: false, error: "Hubtel payment is not configured", ambiguous: false };
   }
   if (!config.merchantNumber) {
     return {
       ok: false,
       error: "Hubtel Merchant Account Number is missing — add it in Admin Settings",
+      ambiguous: false,
     };
   }
 
-  const base = config.siteUrl || origin.replace(/\/+$/, "");
-  const clientReference = order.code;
+  const base = config.siteUrl ||
+    (process.env.NODE_ENV !== "production" ? origin.replace(/\/+$/, "") : "");
+  if (!base) {
+    return { ok: false, error: "Set the canonical HTTPS site URL before accepting payments", ambiguous: false };
+  }
+  try {
+    const target = new URL(base);
+    if (target.protocol !== "https:" ||
+      target.username || target.password || target.search || target.hash ||
+      target.pathname !== "/") {
+      return { ok: false, error: "Invalid canonical HTTPS site URL", ambiguous: false };
+    }
+  } catch {
+    return { ok: false, error: "Invalid canonical HTTPS site URL", ambiguous: false };
+  }
+  const clientReference = reference;
 
   // --- Hubtel Online Checkout initiate payload (camelCase) ---
   const payload: Record<string, unknown> = {
@@ -138,8 +154,8 @@ export async function initiateCheckout(
     merchantAccountNumber: config.merchantNumber,
     clientReference,
   };
-  if (order.fullName) payload.clientName = order.fullName;
-  if (order.phone) payload.customerPhoneNumber = order.phone;
+  if (order.fullName) payload.payeeName = order.fullName;
+  if (order.phone) payload.payeeMobileNumber = order.phone;
 
   try {
     const res = await fetch(INITIATE_URL, {
@@ -168,11 +184,14 @@ export async function initiateCheckout(
         (data["responseMessage"] as string) ||
         (data["responseCode"] ? `response code ${data["responseCode"]}` : "") ||
         `Hubtel rejected the checkout (HTTP ${res.status})`;
-      return { ok: false, error: message };
+      return { ok: false, error: message, ambiguous: false };
     }
 
     // Response is camelCase: { checkoutUrl, responseCode, responseMessage, ... }
     const nested = data["data"] as Record<string, unknown> | undefined;
+    if (data["responseCode"] !== "0000") {
+      return { ok: false, error: String(data["message"] || data["responseMessage"] || "Hubtel rejected checkout"), ambiguous: false };
+    }
     const url =
       (data["checkoutUrl"] as string) ||
       (data["CheckoutUrl"] as string) ||
@@ -180,7 +199,16 @@ export async function initiateCheckout(
       (data["url"] as string) ||
       "";
     if (!url) {
-      return { ok: false, error: "Hubtel did not return a checkout URL" };
+      return { ok: false, error: "Hubtel did not return a checkout URL", ambiguous: true };
+    }
+    // Never redirect a customer to an unexpected URL returned by a provider.
+    try {
+      const target = new URL(url);
+      if (target.protocol !== "https:" || target.hostname !== "pay.hubtel.com") {
+        return { ok: false, error: "Unexpected Hubtel checkout URL", ambiguous: true };
+      }
+    } catch {
+      return { ok: false, error: "Invalid Hubtel checkout URL", ambiguous: true };
     }
     return { ok: true, url, token: clientReference };
   } catch (err) {
@@ -188,11 +216,11 @@ export async function initiateCheckout(
       err instanceof Error && err.name === "TimeoutError"
         ? "Hubtel did not respond in time"
         : "Could not reach Hubtel";
-    return { ok: false, error };
+    return { ok: false, error, ambiguous: true };
   }
 }
 
-export type CheckoutStatus = "success" | "cancelled" | "failed" | "pending" | "unknown";
+export type CheckoutStatus = "success" | "cancelled" | "failed" | "pending" | "refunded" | "unknown";
 
 /** Normalise the many possible Hubtel status spellings. */
 function normaliseStatus(raw: string): CheckoutStatus {
@@ -201,7 +229,8 @@ function normaliseStatus(raw: string): CheckoutStatus {
   if (["cancelled", "canceled", "abort", "abandoned"].includes(s)) return "cancelled";
   if (["failed", "failure", "error", "declined", "rejected", "timeout"].includes(s))
     return "failed";
-  if (["pending", "processing", "in_progress", "inprogress", "awaiting"].includes(s))
+  if (s === "refunded") return "refunded";
+  if (["unpaid", "pending", "processing", "in_progress", "inprogress", "awaiting"].includes(s))
     return "pending";
   return "unknown";
 }
@@ -222,50 +251,62 @@ function extractStatus(data: Record<string, unknown>): string | null {
 }
 
 export type StatusResult =
-  | { ok: true; status: CheckoutStatus; raw: string }
+  | {
+      ok: true;
+      status: CheckoutStatus;
+      raw: string;
+      amount: number | null;
+      clientReference: string;
+      transactionId: string;
+    }
   | { ok: false; error: string };
 
 /**
- * Ask Hubtel for the authoritative status of a transaction by its
- * clientReference (our order code). Used by the polling endpoint as a
- * belt-and-braces check when the webhook has not landed yet.
+ * Hubtel's authoritative Transaction Status API (Nov 2026).
+ * An online checkout "success" callback is never financial proof on its own.
+ * The collection account must be allowlisted with Hubtel for this endpoint.
  */
-export async function verifyHubtelTransaction(reference: string): Promise<StatusResult> {
+export async function verifyHubtelTransaction(
+  reference: string,
+  merchantNumber?: string
+): Promise<StatusResult> {
   const config = await getHubtelPaymentConfig();
   if (!config) return { ok: false, error: "Hubtel payment is not configured" };
+  const account = merchantNumber || config.merchantNumber;
+  if (!account) return { ok: false, error: "Hubtel collection account is not configured" };
 
   try {
-    const res = await fetch(`${VERIFY_TXN_BASE}/${encodeURIComponent(reference)}`, {
+    const uri = `${VERIFY_TXN_BASE}/${encodeURIComponent(account)}/status?clientReference=${encodeURIComponent(reference)}`;
+    const res = await fetch(uri, {
       method: "GET",
       headers: {
         Authorization: basicAuth(config.clientId, config.clientSecret),
         Accept: "application/json",
       },
       signal: AbortSignal.timeout(PROVIDER_TIMEOUT_MS),
+      cache: "no-store",
     });
-
-    const text = await res.text();
-    let data: Record<string, unknown> = {};
-    try {
-      data = JSON.parse(text);
-    } catch {
-      data = {};
+    if (!res.ok) return { ok: false, error: `Hubtel status HTTP ${res.status}` };
+    const body = (await res.json()) as Record<string, unknown>;
+    if (body.responseCode !== "0000") {
+      return { ok: false, error: `Hubtel status rejected: ${String(body.responseCode || "unknown")}` };
     }
-
-    if (!res.ok) {
-      const message =
-        (data["message"] as string) || (data["Message"] as string) || `HTTP ${res.status}`;
-      return { ok: false, error: message };
+    const detail = body.data as Record<string, unknown> | undefined;
+    if (!detail || typeof detail.status !== "string") {
+      return { ok: false, error: "Hubtel status response missing data.status" };
     }
-
-    const raw = extractStatus(data);
+    const amount = typeof detail.amount === "number" ? detail.amount
+      : typeof detail.amount === "string" ? Number(detail.amount) : NaN;
     return {
       ok: true,
-      status: raw ? normaliseStatus(raw) : "unknown",
-      raw: raw ?? text.slice(0, 200),
+      raw: detail.status,
+      status: normaliseStatus(detail.status),
+      amount: Number.isFinite(amount) ? amount : null,
+      clientReference: typeof detail.clientReference === "string" ? detail.clientReference : "",
+      transactionId: typeof detail.transactionId === "string" ? detail.transactionId : "",
     };
   } catch {
-    return { ok: false, error: "Could not reach Hubtel" };
+    return { ok: false, error: "Could not reach Hubtel transaction status service" };
   }
 }
 
@@ -593,7 +634,7 @@ export async function testHubtelConnection(origin: string): Promise<TestResult> 
     if (res.ok && (data["checkoutUrl"] || data["url"])) {
       return {
         ok: true,
-        message: "Credentials verified — Hubtel Online Checkout is working.",
+        message: "Checkout initiation works. Transaction-status verification still needs a full payment test.",
       };
     }
 

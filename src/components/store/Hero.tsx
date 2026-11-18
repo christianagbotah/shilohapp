@@ -73,7 +73,7 @@ function Countdown({ startIso, year, dates }: { startIso: string; year: string; 
     );
   }
   return (
-    <div className="flex items-end gap-2 sm:gap-3" role="timer" aria-label={`Countdown to Shiloh ${year}`}>
+    <div className="flex flex-wrap items-end gap-2 sm:gap-3" role="timer" aria-label={`Countdown to Shiloh ${year}`}>
       <span className="pb-2 pr-1 text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground sm:text-sm">
         {startLabel} in
       </span>

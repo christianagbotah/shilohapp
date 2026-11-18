@@ -49,7 +49,7 @@ export async function GET(req: NextRequest) {
       pendingReview: orders.filter((o) => o.status === "pending").length,
       verifyingPayment: orders.filter((o) => o.paymentStatus === "verifying").length,
       paidRevenue: orders
-        .filter((o) => o.paymentStatus === "paid" && o.status !== "cancelled")
+        .filter((o) => o.paymentStatus === "paid")
         .reduce((n, o) => n + o.total, 0),
       totalUnits: orders
         .filter((o) => o.status !== "cancelled")

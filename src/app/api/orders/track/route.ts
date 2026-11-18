@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { normalizeGhPhone } from "@/lib/format";
+import { clientIp, rateLimit } from "@/lib/rate-limit";
 import type { OrderDTO } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
@@ -11,20 +12,17 @@ export const dynamic = "force-dynamic";
  */
 export async function GET(req: NextRequest) {
   try {
-    const q = (req.nextUrl.searchParams.get("q") ?? "").trim();
-    if (q.length < 4) {
-      return NextResponse.json({ error: "Enter your order code or phone number" }, { status: 400 });
+    const code = (req.nextUrl.searchParams.get("code") ?? "").trim().toUpperCase();
+    const phone = normalizeGhPhone(req.nextUrl.searchParams.get("phone") ?? "");
+    if (!/^SHL-[A-HJ-NP-Z2-9]{6}$/.test(code) || !phone) {
+      return NextResponse.json({ error: "Enter your order code and matching phone number" }, { status: 400 });
     }
-
-    const upper = q.toUpperCase();
-    const phone = normalizeGhPhone(q);
-    const codeMatch = upper.match(/^SHL-[A-HJ-NP-Z2-9]{6}$/);
-
+    const limited = rateLimit(`track:${clientIp(req)}`, 35, 10 * 60_000);
+    if (!limited.ok) return NextResponse.json({ error: "Too many lookups; please try shortly" }, { status: 429 });
     const orders = await db.order.findMany({
-      where: codeMatch ? { code: upper } : phone ? { phone } : { code: upper },
+      where: { code, phone },
       include: { items: true },
-      orderBy: { createdAt: "desc" },
-      take: 20,
+      take: 1,
     });
 
     const dtos: OrderDTO[] = orders.map((order) => ({

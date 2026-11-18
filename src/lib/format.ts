@@ -1,6 +1,6 @@
 /** Client-safe pure helpers (no server imports). */
 
-/** Format an amount in Ghana cedis, e.g. 80 -> "GH₵80" */
+/** Format an amount in Ghana cedis, e.g. 80 -> "₵80" */
 export function formatGhs(amount: number): string {
   const rounded = Math.round(amount * 100) / 100;
   const str = Number.isInteger(rounded)

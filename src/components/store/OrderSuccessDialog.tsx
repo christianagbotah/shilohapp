@@ -83,17 +83,20 @@ export function OrderSuccessDialog() {
     setPayError(null);
     setPay("starting");
     try {
-      const res = await fetchJson<{ url: string }>("/api/payments/initiate", {
+      const res = await fetchJson<{ url: string; alreadyPaid?: boolean }>("/api/payments/initiate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ code: placedOrder.code, phone: placedOrder.phone }),
       });
+      if (res.alreadyPaid) {
+        setPay("paid");
+        return;
+      }
       setPay("waiting");
-      // Give the poller a beat to catch the redirect target, then go.
       window.location.href = res.url;
     } catch (err) {
       const message = err instanceof Error ? err.message : "Could not start payment.";
-      setPay("error");
+      setPay(message.toLowerCase().includes("still being checked") ? "waiting" : "error");
       setPayError(
         message.toLowerCase().includes("not configured")
           ? "Online payment is being activated — our team will contact you to complete your payment securely."
@@ -131,7 +134,7 @@ export function OrderSuccessDialog() {
           </DialogTitle>
           <DialogDescription>
             {pay === "paid"
-              ? `We've received ${formatGhs(placedOrder?.total ?? 0)}. A confirmation SMS is on its way.`
+              ? `We've received ${formatGhs(placedOrder?.total ?? 0)}. You can track your order with the code below.`
               : `Thank you, ${placedOrder?.fullName.split(" ")[0]}. Complete your secure payment below.`}
           </DialogDescription>
         </DialogHeader>
@@ -182,7 +185,7 @@ export function OrderSuccessDialog() {
                     Waiting for Hubtel…
                   </p>
                   <p className="mt-1.5 text-xs text-muted-foreground">
-                    Redirecting to secure checkout — if nothing happens, tap the button again.
+                    Payment is being checked. Please use Track Order before trying another checkout.
                   </p>
                 </div>
               ) : (

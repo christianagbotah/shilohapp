@@ -3,7 +3,7 @@
  * Run: bun scripts/seed.ts
  */
 import { PrismaClient } from "@prisma/client";
-import crypto from "crypto";
+import { hashPassword } from "../src/lib/admin-auth";
 
 const db = new PrismaClient();
 
@@ -150,14 +150,11 @@ async function main() {
   }
 
   // Settings
-  const hash = (pw: string) =>
-    crypto.createHash("sha256").update(pw + "|shiloh-merch-salt").digest("hex");
 
   const settings: Record<string, string> = {
     momo_number: "0555 123 456", // placeholder — change in Back Office
     momo_name: "Shiloh Merch GH",
     momo_network: "MTN MoMo",
-    admin_password: hash("shiloh2026"),
     announcement: "Order early — every order is delivered before Dec 8, Shiloh week.",
     // Event branding — editable every year from the Back Office
     shiloh_year: "2026",
@@ -165,6 +162,13 @@ async function main() {
     shiloh_dates: "December 8–13",
     shiloh_start: "2026-12-08",
   };
+  const initialPassword = process.env.SHILOH_ADMIN_INITIAL_PASSWORD;
+  if (initialPassword) {
+    if (initialPassword.length < 12 || initialPassword === "shiloh2026") {
+      throw new Error("Initial administrator password must be unique and at least 12 characters");
+    }
+    settings.admin_password = hashPassword(initialPassword);
+  }
   for (const [key, value] of Object.entries(settings)) {
     await db.setting.upsert({ where: { key }, update: {}, create: { key, value } });
   }

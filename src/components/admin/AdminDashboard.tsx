@@ -188,6 +188,7 @@ function OrderDetail({
   const { toast } = useToast();
   const [notes, setNotes] = useState(order.adminNotes ?? "");
   const [busy, setBusy] = useState<string | null>(null);
+  const [manualReference, setManualReference] = useState("");
 
   const act = async (label: string, body: Record<string, unknown>) => {
     setBusy(label);
@@ -309,38 +310,55 @@ function OrderDetail({
               <Printer className="mr-2 h-4 w-4" aria-hidden />
               Print invoice
             </Button>
-            {order.paymentStatus !== "paid" ? (
+            {order.paymentStatus === "paid" ? (
+              <span className="inline-flex items-center gap-2 rounded-full bg-emerald-500/10 px-3 py-2 text-sm font-semibold text-emerald-400">
+                <CheckCircle2 className="h-4 w-4" aria-hidden /> Payment verified
+              </span>
+            ) : order.paymentStatus === "verifying" || order.paymentMethod === "hubtel" ? (
               <Button
-                onClick={() => act("paid", { paymentStatus: "paid" })}
+                variant="outline"
                 disabled={busy !== null}
-                className="rounded-full bg-emerald-500 font-semibold text-black hover:bg-emerald-400"
+                onClick={async () => {
+                  setBusy("recheck");
+                  try {
+                    await fetchJson(`/api/admin/orders/${order.id}/reconcile`, { method: "POST" });
+                    await queryClient.invalidateQueries({ queryKey: ["admin-orders"] });
+                    toast({ title: "Hubtel payment status checked" });
+                  } catch (err) {
+                    toast({ title: "Verification unavailable", description: err instanceof Error ? err.message : "Try again later", variant: "destructive" });
+                  } finally { setBusy(null); }
+                }}
+                className="rounded-full border-gold/50 text-gold"
               >
-                {busy === "paid" ? (
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden />
-                ) : (
-                  <CheckCircle2 className="mr-2 h-4 w-4" aria-hidden />
-                )}
-                Confirm payment received
+                <RefreshCcw className="mr-2 h-4 w-4" aria-hidden /> Recheck Hubtel
               </Button>
             ) : (
-              <Button
-                onClick={() => act("unpaid", { paymentStatus: "unpaid" })}
-                disabled={busy !== null}
-                variant="outline"
-                className="rounded-full border-border"
-              >
-                Revert to unpaid
-              </Button>
+              <div className="w-full space-y-2 rounded-xl border border-border bg-background/60 p-3">
+                <Label htmlFor="manual-payment-ref" className="text-sm font-semibold">Manual payment receipt/reference</Label>
+                <p className="text-xs text-muted-foreground">Only confirm money verified outside Hubtel. This action creates an audit record.</p>
+                <div className="flex flex-col gap-2 sm:flex-row">
+                  <Input
+                    id="manual-payment-ref"
+                    value={manualReference}
+                    onChange={(e) => setManualReference(e.target.value)}
+                    placeholder="Bank/MoMo receipt or cash reference"
+                    maxLength={100}
+                    className="h-10 flex-1"
+                  />
+                  <Button
+                    onClick={() => act("paid", { manualPaymentReference: manualReference.trim() })}
+                    disabled={busy !== null || manualReference.trim().length < 6}
+                    className="rounded-full bg-emerald-500 text-black hover:bg-emerald-400"
+                  >
+                    <CheckCircle2 className="mr-2 h-4 w-4" aria-hidden /> Confirm manual payment
+                  </Button>
+                </div>
+              </div>
             )}
             {order.paymentStatus === "verifying" ? (
-              <Button
-                onClick={() => act("unverified", { paymentStatus: "unpaid" })}
-                disabled={busy !== null}
-                variant="outline"
-                className="rounded-full border-border text-muted-foreground"
-              >
-                Payment not seen yet
-              </Button>
+              <p className="w-full text-xs text-amber-400">
+                Hubtel payment is still being verified. Do not ask the customer to pay again or release items yet.
+              </p>
             ) : null}
           </div>
 
@@ -377,7 +395,8 @@ function OrderDetail({
                   </Button>
                 ) : null}
                 <Button
-                  disabled={busy !== null}
+                  disabled={busy !== null || order.paymentStatus !== "paid"}
+                  title={order.paymentStatus !== "paid" ? "Payment must be verified before fulfillment" : undefined}
                   onClick={() => act("fulfilled", { status: "fulfilled" })}
                   className="rounded-full bg-gradient-to-r from-gold to-gold-deep font-bold text-primary-foreground hover:opacity-95"
                 >
@@ -385,7 +404,8 @@ function OrderDetail({
                 </Button>
                 <Button
                   variant="outline"
-                  disabled={busy !== null}
+                  disabled={busy !== null || order.paymentStatus === "paid"}
+                  title={order.paymentStatus === "paid" ? "Paid orders require refund handling" : undefined}
                   onClick={() => act("cancelled", { status: "cancelled" })}
                   className="rounded-full border-destructive/40 text-destructive hover:bg-destructive/10"
                 >
@@ -736,7 +756,9 @@ export function AdminDashboard() {
               variant="outline"
               size="sm"
               className="rounded-full border-border"
-              onClick={() => setAdminToken(null)}
+              onClick={async () => {
+                try { await fetch("/api/admin/session", { method: "DELETE" }); } finally { setAdminToken(null); }
+              }}
             >
               <LogOut className="mr-1.5 h-4 w-4" aria-hidden />
               Log out
