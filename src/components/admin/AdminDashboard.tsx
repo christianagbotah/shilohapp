@@ -468,7 +468,7 @@ function exportOrdersCsv(orders: OrderDTO[]) {
     "Phone",
     "Address",
     "Items",
-    "Total (GHS)",
+    "Total (₵)",
     "Payment status",
     "Payment method",
     "Paid at",

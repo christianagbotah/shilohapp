@@ -6,7 +6,7 @@ export function formatGhs(amount: number): string {
   const str = Number.isInteger(rounded)
     ? rounded.toLocaleString("en-GH")
     : rounded.toLocaleString("en-GH", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-  return `GH₵${str}`;
+  return `₵${str}`;
 }
 
 /** Normalize a Ghana phone number to local format 0XXXXXXXXX. Returns null when invalid. */
