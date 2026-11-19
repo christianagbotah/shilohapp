@@ -62,6 +62,7 @@ type SettingsResponse = {
 };
 
 function CardShell({
+  id,
   icon: Icon,
   title,
   subtitle,
@@ -69,6 +70,7 @@ function CardShell({
   gold,
   status,
 }: {
+  id: string;
   icon: React.ElementType;
   title: string;
   subtitle: string;
@@ -78,8 +80,9 @@ function CardShell({
 }) {
   return (
     <section
+      id={id}
       className={cn(
-        "rounded-3xl p-6",
+        "scroll-mt-36 rounded-3xl p-6",
         gold ? "gold-panel" : "border border-border bg-card"
       )}
     >
@@ -315,8 +318,30 @@ export function AdminSettings({ token }: { token: string }) {
 
   return (
     <div className="grid gap-5 lg:grid-cols-2">
+      <nav
+        aria-label="Jump to settings"
+        className="sticky top-16 z-20 -mx-1 flex gap-2 overflow-x-auto rounded-xl border border-border bg-card/95 px-3 py-3 shadow-sm backdrop-blur-md lg:col-span-2"
+      >
+        {([
+          ["payments", "Payments"],
+          ["sms", "SMS"],
+          ["email", "Email"],
+          ["branding", "Event branding"],
+          ["storefront", "Storefront"],
+          ["password", "Security"],
+        ] as const).map(([key, label]) => (
+          <a
+            key={key}
+            href={"#setting-" + key}
+            className="shrink-0 rounded-lg border border-border bg-background px-3 py-2 text-xs font-semibold text-muted-foreground transition-colors hover:border-gold/50 hover:text-gold focus-visible:outline-2 focus-visible:outline-gold"
+          >
+            {label}
+          </a>
+        ))}
+      </nav>
       {/* ---------------- Hubtel payment ---------------- */}
       <CardShell
+        id="setting-payments"
         icon={ShieldCheck}
         title="Hubtel Online Payment"
         subtitle="Activate one-tap checkout — Hubtel collects MoMo, wallets & cards"
@@ -445,6 +470,7 @@ export function AdminSettings({ token }: { token: string }) {
 
       {/* ---------------- SMS alerts ---------------- */}
       <CardShell
+        id="setting-sms"
         icon={MessageSquare}
         title="SMS Alerts (Hubtel)"
         subtitle="Order & payment confirmations to the customer and your phone"
@@ -576,6 +602,7 @@ export function AdminSettings({ token }: { token: string }) {
 
       {/* ---------------- Email alerts ---------------- */}
       <CardShell
+        id="setting-email"
         icon={Mail}
         title="Email Alerts (SMTP)"
         subtitle="Every new order & payment lands in your inbox"
@@ -703,6 +730,7 @@ export function AdminSettings({ token }: { token: string }) {
 
       {/* ---------------- Branding ---------------- */}
       <CardShell
+        id="setting-branding"
         icon={Sparkles}
         title="Shiloh Branding"
         subtitle="Drives the headline, dates and countdown — update every year"
@@ -780,6 +808,7 @@ export function AdminSettings({ token }: { token: string }) {
 
       {/* ---------------- Storefront ---------------- */}
       <CardShell
+        id="setting-storefront"
         icon={Wallet}
         title="Storefront"
         subtitle="Customer-facing store settings"
@@ -815,6 +844,7 @@ export function AdminSettings({ token }: { token: string }) {
 
       {/* ---------------- Password ---------------- */}
       <CardShell
+        id="setting-password"
         icon={KeyRound}
         title="Back office password"
         subtitle="Changing it signs out every other device"

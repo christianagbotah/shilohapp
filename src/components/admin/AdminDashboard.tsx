@@ -5,6 +5,14 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   ArrowLeft,
   Banknote,
+  ChevronDown,
+  ExternalLink,
+  LayoutDashboard,
+  Menu,
+  PanelLeftClose,
+  PanelLeftOpen,
+  ShieldCheck,
+  X,
   BarChart3,
   BellRing,
   CheckCircle2,
@@ -42,7 +50,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useUi } from "@/store/ui";
 import { fetchJson, useStoreInfo } from "@/hooks/use-store-data";
 import { useToast } from "@/hooks/use-toast";
@@ -695,24 +702,258 @@ function OrdersPanel({
   );
 }
 
+type BackOfficePage =
+  | "overview"
+  | "orders"
+  | "insights"
+  | "products"
+  | "content"
+  | "alerts"
+  | "settings";
+
+type NavigationItem = {
+  id: BackOfficePage;
+  label: string;
+  detail: string;
+  icon: LucideIcon;
+};
+
+const BACKOFFICE_GROUPS: { label: string; items: NavigationItem[] }[] = [
+  {
+    label: "WORKSPACE",
+    items: [
+      { id: "overview", label: "Overview", detail: "Store activity and tasks", icon: LayoutDashboard },
+      { id: "orders", label: "Orders", detail: "Customers and fulfillment", icon: ShoppingBag },
+      { id: "insights", label: "Reports & insights", detail: "Sales performance", icon: BarChart3 },
+    ],
+  },
+  {
+    label: "STOREFRONT",
+    items: [
+      { id: "products", label: "Products", detail: "Catalog and pricing", icon: Package },
+      { id: "content", label: "Site content", detail: "Homepage and copy", icon: PenLine },
+    ],
+  },
+  {
+    label: "MANAGEMENT",
+    items: [
+      { id: "alerts", label: "Notifications", detail: "Message delivery", icon: BellRing },
+      { id: "settings", label: "Settings", detail: "Brand, payment and access", icon: Settings2 },
+    ],
+  },
+];
+const PAGE_DETAILS = BACKOFFICE_GROUPS.flatMap((group) => group.items);
+
+function pageFromUrl(): BackOfficePage {
+  if (typeof window === "undefined") return "overview";
+  const requested = new URLSearchParams(window.location.search).get("section");
+  return PAGE_DETAILS.some((page) => page.id === requested)
+    ? (requested as BackOfficePage)
+    : "overview";
+}
+
+function OverviewPanel({
+  data,
+  loading,
+  onNavigate,
+  paymentsActive,
+  error,
+  onRefresh,
+}: {
+  data: AdminOrdersResponse | undefined;
+  loading: boolean;
+  onNavigate: (page: BackOfficePage) => void;
+  paymentsActive: boolean;
+  error: boolean;
+  onRefresh: () => void;
+}) {
+  const recentOrders = (data?.orders ?? []).slice(0, 5);
+  const pending = data?.stats.pendingReview ?? 0;
+  const verifying = data?.stats.verifyingPayment ?? 0;
+
+  return (
+    <div className="grid gap-6">
+      {error ? (
+        <div role="alert" className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-amber-500/35 bg-amber-500/10 px-4 py-3 text-sm">
+          <span>Order data could not be refreshed. The figures below may not be available.</span>
+          <button type="button" onClick={onRefresh} className="font-bold text-gold underline-offset-2 hover:underline">Retry loading</button>
+        </div>
+      ) : null}
+      <div className="grid grid-cols-2 gap-3 xl:grid-cols-5">
+        <StatCard icon={ShoppingBag} label="Total orders" value={loading ? "…" : String(data?.stats.totalOrders ?? "—")} />
+        <StatCard icon={Clock3} label="Pending review" value={loading ? "…" : String(pending)} />
+        <StatCard icon={Wallet} label="Verifying payment" value={loading ? "…" : String(verifying)} highlight />
+        <StatCard icon={Banknote} label="Paid revenue" value={loading ? "…" : formatGhs(data?.stats.paidRevenue ?? 0)} highlight />
+        <StatCard icon={Package} label="Units sold" value={loading ? "…" : String(data?.stats.totalUnits ?? 0)} />
+      </div>
+
+      <div className="grid gap-5 xl:grid-cols-[minmax(0,1.35fr)_minmax(300px,1fr)]">
+        <section className="rounded-2xl border border-border bg-card p-5 sm:p-6" aria-labelledby="bo-priorities">
+          <div className="mb-5">
+            <p className="text-[0.7rem] font-bold uppercase tracking-[0.18em] text-gold">YOUR WORK QUEUE</p>
+            <h3 id="bo-priorities" className="mt-1 font-display text-lg font-bold">What needs attention</h3>
+            <p className="mt-1 text-xs text-muted-foreground">Your next actions, all in one place.</p>
+          </div>
+          <div className="grid gap-2">
+            {([
+              { title: "Review new orders", sub: "Check customer details and follow up", count: pending, icon: Clock3, page: "orders" },
+              { title: "Check payments", sub: "Review transactions still verifying", count: verifying, icon: Wallet, page: "orders" },
+            ] as const).map((task) => (
+              <button
+                key={task.title}
+                type="button"
+                onClick={() => onNavigate(task.page)}
+                className="group flex w-full items-center gap-3 rounded-xl border border-border bg-background/55 px-4 py-3 text-left transition-colors hover:border-gold/40 hover:bg-secondary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold"
+              >
+                <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-secondary text-gold">
+                  <task.icon className="size-5" aria-hidden />
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block text-sm font-semibold">{task.title}</span>
+                  <span className="block text-xs text-muted-foreground">{task.sub}</span>
+                </span>
+                <span className="rounded-full bg-secondary px-2.5 py-1 text-sm font-bold tabular-nums">{loading ? "…" : task.count}</span>
+                <ChevronRight className="size-4 text-muted-foreground transition-transform group-hover:translate-x-0.5" aria-hidden />
+              </button>
+            ))}
+            <button
+              type="button"
+              onClick={() => onNavigate("products")}
+              className="group flex w-full items-center gap-3 rounded-xl border border-border bg-background/55 px-4 py-3 text-left transition-colors hover:border-gold/40 hover:bg-secondary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold"
+            >
+              <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-secondary text-gold">
+                <Package className="size-5" aria-hidden />
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block text-sm font-semibold">Manage your catalogue</span>
+                <span className="block text-xs text-muted-foreground">Product details, images and prices</span>
+              </span>
+              <ChevronRight className="size-4 text-muted-foreground transition-transform group-hover:translate-x-0.5" aria-hidden />
+            </button>
+          </div>
+        </section>
+
+        <section className="flex flex-col rounded-2xl border border-border bg-card p-5 sm:p-6" aria-labelledby="bo-readiness">
+          <p className="text-[0.7rem] font-bold uppercase tracking-[0.18em] text-gold">STORE OPERATIONS</p>
+          <h3 id="bo-readiness" className="mt-1 font-display text-lg font-bold">Store health</h3>
+          <div className="mt-5 space-y-4">
+            <div className="flex gap-3">
+              <ShieldCheck className="mt-0.5 size-5 shrink-0 text-emerald-400" aria-hidden />
+              <div>
+                <p className="text-sm font-semibold">Back Office session protected</p>
+                <p className="text-xs text-muted-foreground">Administrator sign-in is required.</p>
+              </div>
+            </div>
+            <div className="flex gap-3">
+              <Wallet className={cn("mt-0.5 size-5 shrink-0", paymentsActive ? "text-emerald-400" : "text-amber-400")} aria-hidden />
+              <div>
+                <p className="text-sm font-semibold">{paymentsActive ? "Online checkout enabled" : "Online checkout not activated"}</p>
+                <p className="text-xs text-muted-foreground">
+                  {paymentsActive ? "Monitor transaction verification and order status." : "Orders can be taken. Verify and configure the payment provider before accepting online payments."}
+                </p>
+              </div>
+            </div>
+          </div>
+          <div className="mt-auto pt-6">
+            <button
+              type="button"
+              onClick={() => onNavigate("settings")}
+              className="flex w-full items-center justify-between rounded-xl border border-gold/30 bg-gold/10 px-4 py-3 text-left text-sm font-semibold text-gold transition-colors hover:bg-gold/15"
+            >
+              Review store settings
+              <ChevronRight className="size-4" aria-hidden />
+            </button>
+          </div>
+        </section>
+      </div>
+
+      <section className="rounded-2xl border border-border bg-card p-5 sm:p-6" aria-labelledby="bo-recent-orders">
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h3 id="bo-recent-orders" className="font-display text-lg font-bold">Recent orders</h3>
+            <p className="mt-1 text-xs text-muted-foreground">Most recently placed customer orders</p>
+          </div>
+          <Button type="button" variant="outline" size="sm" className="rounded-xl" onClick={() => onNavigate("orders")}>
+            View all orders <ChevronRight className="ml-1.5 size-4" aria-hidden />
+          </Button>
+        </div>
+        {loading ? (
+          <div className="flex items-center gap-2 py-9 text-sm text-muted-foreground"><Loader2 className="size-4 animate-spin" aria-hidden /> Loading orders…</div>
+        ) : recentOrders.length === 0 ? (
+          <div className="rounded-xl border border-dashed border-border bg-background/40 px-5 py-10 text-center text-sm text-muted-foreground">
+            No orders yet. New orders will appear here as customers check out.
+          </div>
+        ) : (
+          <div className="divide-y divide-border">
+            {recentOrders.map((order) => (
+              <button
+                key={order.id}
+                type="button"
+                onClick={() => onNavigate("orders")}
+                className="flex w-full flex-wrap items-center gap-3 py-3 text-left transition-colors hover:text-gold focus-visible:outline-2 focus-visible:outline-gold"
+              >
+                <div className="min-w-[135px] flex-1">
+                  <p className="text-sm font-semibold">{order.code}</p>
+                  <p className="text-xs text-muted-foreground">{order.fullName}</p>
+                </div>
+                <StatusBadge status={order.status} />
+                <PaymentBadge status={order.paymentStatus} />
+                <span className="min-w-[90px] text-right text-sm font-bold tabular-nums">{formatGhs(order.total)}</span>
+                <ChevronRight className="size-4 text-muted-foreground" aria-hidden />
+              </button>
+            ))}
+          </div>
+        )}
+      </section>
+    </div>
+  );
+}
+
 export function AdminDashboard() {
   const token = useUi((s) => s.adminToken) ?? "";
   const setAdminToken = useUi((s) => s.setAdminToken);
-  const setView = useUi((s) => s.setView);
-  const { data, isLoading } = useAdminOrders();
+  const { data, isLoading, isError, refetch, isFetching } = useAdminOrders();
   const { data: info } = useStoreInfo();
   const year = info?.shilohYear ?? STORE_INFO_DEFAULTS.shilohYear;
-
-  // ---- Printing (invoices & manifests) ----
+  const [section, setSection] = useState<BackOfficePage>("overview");
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [printJob, setPrintJob] = useState<PrintJob | null>(null);
+
+  // The Back Office has its own address and supports direct links, refresh,
+  // and browser Back/Forward without leaking anything into the storefront URL.
+  useEffect(() => {
+    setSection(pageFromUrl());
+    const syncFromHistory = () => setSection(pageFromUrl());
+    window.addEventListener("popstate", syncFromHistory);
+    return () => window.removeEventListener("popstate", syncFromHistory);
+  }, []);
+
+  useEffect(() => {
+    if (!sidebarOpen) return;
+    const onEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setSidebarOpen(false);
+    };
+    window.addEventListener("keydown", onEscape);
+    return () => window.removeEventListener("keydown", onEscape);
+  }, [sidebarOpen]);
+
+  const navigate = (next: BackOfficePage) => {
+    setSection(next);
+    setSidebarOpen(false);
+    if (window.location.pathname === "/backoffice") {
+      const url = new URL(window.location.href);
+      if (next === "overview") url.searchParams.delete("section");
+      else url.searchParams.set("section", next);
+      window.history.pushState(null, "", url.pathname + url.search);
+    }
+    window.scrollTo(0, 0);
+  };
 
   const runPrint = (job: PrintJob) => {
     setPrintJob(job);
-    // Give React a beat to render the hidden print document first.
     requestAnimationFrame(() =>
-      requestAnimationFrame(() => {
-        window.print();
-      })
+      requestAnimationFrame(() => window.print())
     );
   };
 
@@ -720,7 +961,6 @@ export function AdminDashboard() {
     if (!printJob) return;
     const clear = () => setPrintJob(null);
     window.addEventListener("afterprint", clear);
-    // Fallback for browsers that don't fire afterprint reliably.
     const t = setTimeout(clear, 60_000);
     return () => {
       window.removeEventListener("afterprint", clear);
@@ -728,135 +968,193 @@ export function AdminDashboard() {
     };
   }, [printJob]);
 
+  const activePage = PAGE_DETAILS.find((page) => page.id === section) ?? PAGE_DETAILS[0];
+  const PageIcon = activePage.icon;
+
+  const signOut = async () => {
+    try { await fetch("/api/admin/session", { method: "DELETE" }); }
+    finally { setAdminToken(null); }
+  };
+
   return (
     <div className="min-h-dvh bg-background">
-      <div className="print-hidden-app">
-      <header className="sticky top-0 z-40 border-b border-border bg-background/85 backdrop-blur-xl">
-        <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-3 px-4 sm:px-6">
-          <div className="flex items-center gap-3">
+      <div className="print-hidden-app min-h-dvh lg:flex">
+        {sidebarOpen ? (
+          <button
+            type="button"
+            aria-label="Close Back Office navigation"
+            className="fixed inset-0 z-40 bg-black/70 backdrop-blur-[2px] lg:hidden"
+            onClick={() => setSidebarOpen(false)}
+          />
+        ) : null}
+
+        <aside
+          id="backoffice-sidebar"
+          aria-label="Back Office navigation"
+          className={cn(
+            "fixed inset-y-0 left-0 z-50 flex h-dvh w-[276px] shrink-0 flex-col border-r border-border bg-card shadow-2xl transition-transform duration-200 lg:sticky lg:top-0 lg:translate-x-0 lg:shadow-none",
+            !sidebarOpen && "-translate-x-full",
+            sidebarCollapsed && "lg:w-[76px]"
+          )}
+        >
+          <div className={cn("flex h-[74px] shrink-0 items-center gap-3 border-b border-border px-5", sidebarCollapsed && "lg:justify-center lg:px-2")}>
             <BrandLogo size={38} />
-            <div className="leading-none">
-              <p className="font-display text-base font-bold">Shiloh {year} — Back Office</p>
-              <p className="mt-1 text-[0.62rem] font-semibold uppercase tracking-[0.22em] text-muted-foreground">
-                Orders · Insights · Catalogue · Payments
-              </p>
+            <div className={cn("min-w-0", sidebarCollapsed && "lg:hidden")}>
+              <p className="font-display text-sm font-bold tracking-wide">Shiloh {year}</p>
+              <p className="mt-1 text-[0.66rem] font-semibold uppercase tracking-[0.15em] text-muted-foreground">Store management</p>
             </div>
+            <button
+              type="button"
+              className="ml-auto flex size-9 items-center justify-center rounded-lg text-muted-foreground hover:bg-secondary hover:text-foreground lg:hidden"
+              onClick={() => setSidebarOpen(false)}
+              aria-label="Close menu"
+            >
+              <X className="size-5" aria-hidden />
+            </button>
           </div>
-          <div className="flex items-center gap-2">
-            <Button
-              variant="ghost"
-              size="sm"
-              className="rounded-full text-muted-foreground"
-              onClick={() => setView("store")}
+
+          <nav className="pretty-scroll min-h-0 flex-1 space-y-5 overflow-y-auto px-3 py-5" aria-label="Main navigation">
+            {BACKOFFICE_GROUPS.map((group) => (
+              <div key={group.label}>
+                <p className={cn("mb-2 px-3 text-[0.63rem] font-bold tracking-[0.2em] text-muted-foreground/80", sidebarCollapsed && "lg:sr-only")}>
+                  {group.label}
+                </p>
+                <div className="space-y-1">
+                  {group.items.map(({ id, label, icon: Icon }) => {
+                    const selected = section === id;
+                    return (
+                      <button
+                        type="button"
+                        key={id}
+                        title={label}
+                        aria-current={selected ? "page" : undefined}
+                        onClick={() => navigate(id)}
+                        className={cn(
+                          "group flex min-h-11 w-full items-center gap-3 rounded-xl px-3 text-left text-sm font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-gold",
+                          selected
+                            ? "border border-gold/25 bg-gold/12 text-gold"
+                            : "border border-transparent text-muted-foreground hover:bg-secondary hover:text-foreground",
+                          sidebarCollapsed && "lg:justify-center lg:px-2"
+                        )}
+                      >
+                        <Icon className="size-[19px] shrink-0" aria-hidden />
+                        <span className={cn("min-w-0 flex-1 truncate", sidebarCollapsed && "lg:hidden")}>{label}</span>
+                        {selected ? <span className={cn("size-1.5 rounded-full bg-gold", sidebarCollapsed && "lg:hidden")} aria-hidden /> : null}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
+          </nav>
+          <div className="shrink-0 border-t border-border p-3">
+            <a
+              href="/"
+              className={cn(
+                "flex min-h-11 items-center gap-3 rounded-xl px-3 text-sm font-medium text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground",
+                sidebarCollapsed && "lg:justify-center lg:px-2"
+              )}
+              title="View storefront"
             >
-              <ArrowLeft className="mr-1.5 h-4 w-4" aria-hidden />
-              <span className="hidden sm:inline">Store</span>
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              className="rounded-full border-border"
-              onClick={async () => {
-                try { await fetch("/api/admin/session", { method: "DELETE" }); } finally { setAdminToken(null); }
-              }}
+              <ExternalLink className="size-[19px] shrink-0" aria-hidden />
+              <span className={cn(sidebarCollapsed && "lg:hidden")}>View storefront</span>
+            </a>
+            <button
+              type="button"
+              onClick={signOut}
+              title="Sign out"
+              className={cn(
+                "mt-1 flex min-h-11 w-full items-center gap-3 rounded-xl px-3 text-left text-sm font-medium text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive",
+                sidebarCollapsed && "lg:justify-center lg:px-2"
+              )}
             >
-              <LogOut className="mr-1.5 h-4 w-4" aria-hidden />
-              Log out
-            </Button>
+              <LogOut className="size-[19px] shrink-0" aria-hidden />
+              <span className={cn(sidebarCollapsed && "lg:hidden")}>Sign out</span>
+            </button>
           </div>
-        </div>
-      </header>
+        </aside>
 
-      <main className="mx-auto max-w-6xl px-4 py-8 pb-16 sm:px-6">
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
-          <StatCard icon={ShoppingBag} label="Total orders" value={String(data?.stats.totalOrders ?? "–")} />
-          <StatCard icon={Clock3} label="Pending review" value={String(data?.stats.pendingReview ?? "–")} />
-          <StatCard
-            icon={Wallet}
-            label="Verifying payment"
-            value={String(data?.stats.verifyingPayment ?? "–")}
-            highlight
-          />
-          <StatCard
-            icon={Banknote}
-            label="Revenue collected"
-            value={data ? formatGhs(data.stats.paidRevenue) : "–"}
-            highlight
-          />
-          <StatCard icon={Package} label="Units sold" value={String(data?.stats.totalUnits ?? "–")} />
-        </div>
+        <div className="min-w-0 flex-1">
+          <header className="sticky top-0 z-30 flex h-16 items-center justify-between gap-3 border-b border-border bg-background/95 px-4 backdrop-blur-lg sm:px-7">
+            <div className="flex min-w-0 items-center gap-2.5">
+              <button
+                type="button"
+                onClick={() => setSidebarOpen(true)}
+                aria-label="Open Back Office navigation"
+                aria-controls="backoffice-sidebar"
+                aria-expanded={sidebarOpen}
+                className="flex size-10 shrink-0 items-center justify-center rounded-xl border border-border text-muted-foreground hover:bg-secondary lg:hidden"
+              >
+                <Menu className="size-5" aria-hidden />
+              </button>
+              <button
+                type="button"
+                onClick={() => setSidebarCollapsed((v) => !v)}
+                aria-label={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+                title={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+                className="hidden size-10 shrink-0 items-center justify-center rounded-xl border border-border text-muted-foreground hover:bg-secondary lg:flex"
+              >
+                {sidebarCollapsed ? <PanelLeftOpen className="size-5" aria-hidden /> : <PanelLeftClose className="size-5" aria-hidden />}
+              </button>
+              <span className="hidden text-xs text-muted-foreground sm:block">Back Office</span>
+              <ChevronRight className="hidden size-3.5 text-muted-foreground sm:block" aria-hidden />
+              <span className="truncate text-sm font-semibold">{activePage.label}</span>
+            </div>
+            <div className="flex shrink-0 items-center gap-2">
+              <button
+                type="button"
+                onClick={() => refetch()}
+                title="Refresh orders"
+                aria-label="Refresh order data"
+                className="flex size-10 items-center justify-center rounded-xl border border-border text-muted-foreground hover:bg-secondary hover:text-foreground"
+              >
+                <RefreshCcw className={cn("size-4", isFetching && "animate-spin")} aria-hidden />
+              </button>
+              <a
+                href="/"
+                className="hidden h-10 items-center gap-2 rounded-xl border border-border px-3 text-xs font-semibold text-muted-foreground hover:border-gold/40 hover:text-gold sm:inline-flex"
+              >
+                <ExternalLink className="size-4" aria-hidden /> Store
+              </a>
+              <span className="flex size-9 items-center justify-center rounded-full border border-gold/30 bg-gold/10 text-gold" title="Administrator">
+                <ShieldCheck className="size-5" aria-hidden />
+              </span>
+            </div>
+          </header>
 
-        <Tabs defaultValue="orders" className="mt-8">
-          <TabsList className="h-12 w-full justify-start gap-1 overflow-x-auto rounded-full bg-secondary p-1 no-scrollbar sm:w-auto">
-            <TabsTrigger
-              value="orders"
-              className="rounded-full px-5 font-semibold data-[state=active]:bg-gold data-[state=active]:text-primary-foreground"
-            >
-              Orders
-            </TabsTrigger>
-            <TabsTrigger
-              value="insights"
-              className="rounded-full px-5 font-semibold data-[state=active]:bg-gold data-[state=active]:text-primary-foreground"
-            >
-              <BarChart3 className="mr-1.5 h-4 w-4" aria-hidden />
-              Insights
-            </TabsTrigger>
-            <TabsTrigger
-              value="products"
-              className="rounded-full px-5 font-semibold data-[state=active]:bg-gold data-[state=active]:text-primary-foreground"
-            >
-              <Package className="mr-1.5 h-4 w-4" aria-hidden />
-              Products
-            </TabsTrigger>
-            <TabsTrigger
-              value="content"
-              className="rounded-full px-5 font-semibold data-[state=active]:bg-gold data-[state=active]:text-primary-foreground"
-            >
-              <PenLine className="mr-1.5 h-4 w-4" aria-hidden />
-              Content
-            </TabsTrigger>
-            <TabsTrigger
-              value="alerts"
-              className="rounded-full px-5 font-semibold data-[state=active]:bg-gold data-[state=active]:text-primary-foreground"
-            >
-              <BellRing className="mr-1.5 h-4 w-4" aria-hidden />
-              Alerts
-            </TabsTrigger>
-            <TabsTrigger
-              value="settings"
-              className="rounded-full px-5 font-semibold data-[state=active]:bg-gold data-[state=active]:text-primary-foreground"
-            >
-              <Settings2 className="mr-1.5 h-4 w-4" aria-hidden />
-              Settings
-            </TabsTrigger>
-          </TabsList>
-          <TabsContent value="orders" className="mt-5">
-            <OrdersPanel
-              token={token}
-              onPrintInvoice={(order) => runPrint({ kind: "invoice", order })}
-              onPrintManifest={(orders) => runPrint({ kind: "manifest", orders })}
-            />
-          </TabsContent>
-          <TabsContent value="insights" className="mt-5">
-            <AdminInsights orders={data?.orders ?? null} loading={isLoading} />
-          </TabsContent>
-          <TabsContent value="products" className="mt-5">
-            <AdminProducts token={token} />
-          </TabsContent>
-          <TabsContent value="content" className="mt-5">
-            <AdminContent token={token} />
-          </TabsContent>
-          <TabsContent value="alerts" className="mt-5">
-            <AdminAlerts token={token} />
-          </TabsContent>
-          <TabsContent value="settings" className="mt-5">
-            <AdminSettings token={token} />
-          </TabsContent>
-        </Tabs>
-      </main>
+          <main id="backoffice-main" className="mx-auto w-full max-w-[1550px] px-4 py-6 pb-16 sm:px-7 lg:py-8">
+            <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
+              <div className="flex min-w-0 items-start gap-3">
+                <div className="flex size-11 shrink-0 items-center justify-center rounded-2xl border border-gold/20 bg-gold/10 text-gold">
+                  <PageIcon className="size-5" aria-hidden />
+                </div>
+                <div>
+                  <h1 className="font-display text-xl font-bold tracking-tight sm:text-2xl">{activePage.label}</h1>
+                  <p className="mt-1 text-sm text-muted-foreground">{activePage.detail}</p>
+                </div>
+              </div>
+              {section === "overview" ? (
+                <Button type="button" size="sm" className="rounded-xl bg-gold font-semibold text-primary-foreground hover:bg-gold/90" onClick={() => navigate("orders")}>
+                  <ShoppingBag className="mr-2 size-4" aria-hidden /> Manage orders
+                </Button>
+              ) : null}
+            </div>
+
+            {section === "overview" ? (
+              <OverviewPanel data={data} loading={isLoading || (isError && !data)} error={isError} onRefresh={() => { void refetch(); }} onNavigate={navigate} paymentsActive={info?.hubtelActive ?? false} />
+            ) : null}
+            {section === "orders" ? (
+              <OrdersPanel token={token} onPrintInvoice={(order) => runPrint({ kind: "invoice", order })} onPrintManifest={(orders) => runPrint({ kind: "manifest", orders })} />
+            ) : null}
+            {section === "insights" ? <AdminInsights orders={data?.orders ?? null} loading={isLoading} /> : null}
+            {section === "products" ? <AdminProducts token={token} /> : null}
+            {section === "content" ? <AdminContent token={token} /> : null}
+            {section === "alerts" ? <AdminAlerts token={token} /> : null}
+            {section === "settings" ? <AdminSettings token={token} /> : null}
+          </main>
+        </div>
       </div>
 
-      {/* Hidden on screen — becomes the printable page via @media print */}
       <div className="print-doc" aria-hidden>
         {printJob ? <PrintRoot job={printJob} year={year} /> : null}
       </div>

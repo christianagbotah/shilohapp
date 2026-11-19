@@ -19,6 +19,7 @@ import { cn } from "@/lib/utils";
 // ---------------------------------------------------------------------------
 
 function Section({
+  id,
   title,
   description,
   children,
@@ -26,6 +27,7 @@ function Section({
   saving,
   onReset,
 }: {
+  id: string;
   title: string;
   description: string;
   children: React.ReactNode;
@@ -34,7 +36,7 @@ function Section({
   onReset?: () => void;
 }) {
   return (
-    <section className="rounded-2xl border border-border bg-card p-5 sm:p-6">
+    <section id={id} className="scroll-mt-36 rounded-2xl border border-border bg-card p-5 sm:p-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h3 className="font-display text-lg font-bold">{title}</h3>
@@ -286,8 +288,34 @@ export function AdminContent({ token }: { token: string }) {
         open in another tab). {TOKEN_HINT}
       </div>
 
+      <nav
+        aria-label="Jump to content section"
+        className="sticky top-16 z-20 -mx-1 flex gap-2 overflow-x-auto rounded-xl border border-border bg-card/95 px-3 py-3 shadow-sm backdrop-blur-md"
+      >
+        {([
+          ["hero", "Hero"],
+          ["marquee", "Marquee"],
+          ["shop", "Shop"],
+          ["how", "How to order"],
+          ["payment", "Payments"],
+          ["faq", "FAQ"],
+          ["cta", "Call to action"],
+          ["footer", "Footer"],
+          ["lookbook", "Lookbook"],
+        ] as const).map(([key, label]) => (
+          <a
+            key={key}
+            href={"#content-" + key}
+            className="shrink-0 rounded-lg border border-border bg-background px-3 py-2 text-xs font-semibold text-muted-foreground transition-colors hover:border-gold/50 hover:text-gold focus-visible:outline-2 focus-visible:outline-gold"
+          >
+            {label}
+          </a>
+        ))}
+      </nav>
+
       {/* Hero */}
       <Section
+        id="content-hero"
         title="Hero — top of the page"
         description="Headline intro, buttons, flyer image, badge and trust points."
         saving={savingSection === "hero"}
@@ -337,6 +365,7 @@ export function AdminContent({ token }: { token: string }) {
 
       {/* Marquee */}
       <Section
+        id="content-marquee"
         title="Gold marquee strip"
         description="The scrolling phrases under the hero (year, dates and tagline are always included first)."
         saving={savingSection === "marquee"}
@@ -355,6 +384,7 @@ export function AdminContent({ token }: { token: string }) {
 
       {/* Shop heading */}
       <Section
+        id="content-shop"
         title="Shop section heading"
         description="The title block above the product grid and filters."
         saving={savingSection === "shop"}
@@ -374,6 +404,7 @@ export function AdminContent({ token }: { token: string }) {
 
       {/* How to Order */}
       <Section
+        id="content-how"
         title="How to Order"
         description="Section heading and the three step cards."
         saving={savingSection === "how"}
@@ -446,6 +477,7 @@ export function AdminContent({ token }: { token: string }) {
 
       {/* Payment */}
       <Section
+        id="content-payment"
         title="Payment section"
         description="Heading, feature cards, the numbered checkout steps and accepted methods."
         saving={savingSection === "payment"}
@@ -532,6 +564,7 @@ export function AdminContent({ token }: { token: string }) {
 
       {/* FAQ */}
       <Section
+        id="content-faq"
         title="FAQ"
         description="The question list customers expand. Add or remove freely."
         saving={savingSection === "faq"}
@@ -590,6 +623,7 @@ export function AdminContent({ token }: { token: string }) {
 
       {/* CTA band */}
       <Section
+        id="content-cta"
         title="Call-to-action band"
         description="The gold panel above the footer."
         saving={savingSection === "cta"}
@@ -614,6 +648,7 @@ export function AdminContent({ token }: { token: string }) {
 
       {/* Footer */}
       <Section
+        id="content-footer"
         title="Footer"
         description="About text, location line and copyright."
         saving={savingSection === "footer"}
@@ -633,6 +668,7 @@ export function AdminContent({ token }: { token: string }) {
 
       {/* Lookbook */}
       <Section
+        id="content-lookbook"
         title="Lookbook carousel"
         description="The styled outfit shots. Images, titles and descriptions are editable —
         the gold + pins stay linked to the product types shown in each photo."
