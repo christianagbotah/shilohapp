@@ -24,8 +24,10 @@ import { useUi } from "@/store/ui";
 import { fetchJson } from "@/hooks/use-store-data";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
+import { AdminLivePaymentTest } from "@/components/admin/AdminLivePaymentTest";
 
 type SettingsResponse = {
+  paymentTestEnabled: boolean;
   announcement: string;
   shilohYear: string;
   shilohTagline: string;
@@ -167,6 +169,7 @@ export function AdminSettings({ token }: { token: string }) {
   const [siteUrl, setSiteUrl] = useState("");
   const [hubtelActive, setHubtelActive] = useState(false);
   const [testingHubtel, setTestingHubtel] = useState(false);
+  const [paymentTestEnabled, setPaymentTestEnabled] = useState(false);
 
   // SMS
   const [smsClientId, setSmsClientId] = useState("");
@@ -208,6 +211,7 @@ export function AdminSettings({ token }: { token: string }) {
         setHubtelMerchant(res.hubtel.merchantName);
         setSiteUrl(res.hubtel.siteUrl);
         setHubtelActive(res.hubtel.active);
+        setPaymentTestEnabled(res.paymentTestEnabled);
         setSmsClientId(res.sms.clientId);
         setSmsSecretSet(res.sms.secretSet);
         setSmsSender(res.sms.sender);
@@ -328,6 +332,7 @@ export function AdminSettings({ token }: { token: string }) {
       >
         {([
           ["payments", "Payments"],
+          ["live-test", "Live payment test"],
           ["sms", "SMS"],
           ["email", "Email"],
           ["branding", "Event branding"],
@@ -470,6 +475,21 @@ export function AdminSettings({ token }: { token: string }) {
           credentials first, then hit <span className="font-semibold text-foreground">Test connection</span> to
           verify them against the live Hubtel API.
         </p>
+      </CardShell>
+
+      {/* Only authorized administrators can initiate real-money QA payments. */}
+      <CardShell
+        id="setting-live-test"
+        icon={Wallet}
+        title="Live payment & SMS verification"
+        subtitle="Small real-money test with automatic payment and message audit"
+      >
+        <AdminLivePaymentTest
+          token={token}
+          adminPhone={adminPhone}
+          configured={hubtelActive && hubtelSecretSet}
+          enabled={paymentTestEnabled}
+        />
       </CardShell>
 
       {/* ---------------- SMS alerts ---------------- */}

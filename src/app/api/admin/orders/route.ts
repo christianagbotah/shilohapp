@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
+import type { Prisma } from "@prisma/client";
 import { isAdminRequest } from "@/lib/admin-auth";
 import type { AdminStats, OrderDTO } from "@/lib/types";
 
@@ -44,14 +45,20 @@ export async function GET(req: NextRequest) {
       })),
     }));
 
-    // Dashboard totals must cover the entire six-week sale, not only the
-    // most recent page of orders presented in the back office.
+    // Live QA transactions collect real money but must NOT inflate merchandise
+    // sales, product quantities or the regular operations dashboard.
+    const merchOnly: Prisma.OrderWhereInput = {
+      OR: [
+        { adminNotes: null },
+        { adminNotes: { not: { startsWith: "[LIVE_PAYMENT_QA]" } } },
+      ],
+    };
     const [totalOrders, pendingReview, verifyingPayment, revenue, units] = await Promise.all([
-      db.order.count(),
-      db.order.count({ where: { status: "pending" } }),
-      db.order.count({ where: { paymentStatus: "verifying" } }),
-      db.order.aggregate({ where: { paymentStatus: "paid" }, _sum: { total: true } }),
-      db.orderItem.aggregate({ where: { order: { paymentStatus: "paid" } }, _sum: { quantity: true } }),
+      db.order.count({ where: merchOnly }),
+      db.order.count({ where: { AND: [merchOnly, { status: "pending" }] } }),
+      db.order.count({ where: { AND: [merchOnly, { paymentStatus: "verifying" }] } }),
+      db.order.aggregate({ where: { AND: [merchOnly, { paymentStatus: "paid" }] }, _sum: { total: true } }),
+      db.orderItem.aggregate({ where: { order: { AND: [merchOnly, { paymentStatus: "paid" }] } }, _sum: { quantity: true } }),
     ]);
     const stats: AdminStats = {
       totalOrders,

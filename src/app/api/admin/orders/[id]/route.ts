@@ -30,11 +30,21 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     if (!existing) return NextResponse.json({ error: "Order not found" }, { status: 404 });
 
     const d = parsed.data;
+    if (existing.adminNotes?.startsWith("[LIVE_PAYMENT_QA]") &&
+        (d.status === "contacted" || d.status === "fulfilled")) {
+      return NextResponse.json({
+        error: "This is a real-money QA transaction, not a merchandise order. Do not contact for delivery or mark it fulfilled.",
+      }, { status: 409 });
+    }
     if (d.status === "fulfilled" && existing.paymentStatus !== "paid") {
       return NextResponse.json({ error: "Verify payment before marking an order fulfilled." }, { status: 409 });
     }
     if (d.status === "cancelled" && existing.paymentStatus === "paid") {
       return NextResponse.json({ error: "Paid orders require a documented refund before cancellation." }, { status: 409 });
+    }
+    if (existing.adminNotes?.startsWith("[LIVE_PAYMENT_QA]") &&
+        d.adminNotes !== undefined && !d.adminNotes.startsWith("[LIVE_PAYMENT_QA]")) {
+      return NextResponse.json({ error: "The QA audit marker cannot be removed from a payment test." }, { status: 409 });
     }
     if (d.manualPaymentReference) {
       if (existing.paymentStatus === "paid") {

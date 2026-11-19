@@ -486,6 +486,7 @@ export async function sendHubtelSms(to: string, content: string): Promise<SmsRes
 // ---------------------------------------------------------------------------
 
 export type NotifyOrder = {
+  isQaTest?: boolean;
   id: string;
   code: string;
   fullName: string;
@@ -504,6 +505,10 @@ function itemsSummary(order: NotifyOrder): string {
 }
 
 export function smsOrderPlacedCustomer(order: NotifyOrder): string {
+  if (order.isQaTest) {
+    return "SHILOH PAYMENT TEST " + order.code + ": Live checkout for " + formatGhs(order.total) +
+      " prepared. Only pay if you approve it on Hubtel. No merchandise will be supplied.";
+  }
   return (
     `Shiloh 2026: Order ${order.code} received. Total ${formatGhs(order.total)}. ` +
     "Pay securely via the Hubtel checkout to confirm your order. Thank you!"
@@ -511,6 +516,10 @@ export function smsOrderPlacedCustomer(order: NotifyOrder): string {
 }
 
 export function smsOrderPlacedAdmin(order: NotifyOrder): string {
+  if (order.isQaTest) {
+    return "SHILOH ADMIN QA " + order.code + ": Live payment test of " + formatGhs(order.total) +
+      " initiated. Do not fulfil or dispatch any merchandise.";
+  }
   return (
     `NEW ORDER ${order.code}: ${order.fullName} (${order.phone}) — ` +
     `${order.itemCount} items, ${formatGhs(order.total)}. Check the back office.`
@@ -518,6 +527,10 @@ export function smsOrderPlacedAdmin(order: NotifyOrder): string {
 }
 
 export function smsPaymentConfirmedCustomer(order: NotifyOrder): string {
+  if (order.isQaTest) {
+    return "SHILOH PAYMENT TEST " + order.code + ": Hubtel verified receipt of " + formatGhs(order.total) +
+      ". This was a REAL-money test, not a merchandise order.";
+  }
   return (
     `Payment confirmed! Shiloh 2026 order ${order.code} (${formatGhs(order.total)}) is confirmed. ` +
     "We will contact you shortly for delivery. Thank you!"
@@ -525,6 +538,10 @@ export function smsPaymentConfirmedCustomer(order: NotifyOrder): string {
 }
 
 export function smsPaymentConfirmedAdmin(order: NotifyOrder): string {
+  if (order.isQaTest) {
+    return "SHILOH ADMIN QA " + order.code + ": Hubtel confirmed REAL-money test payment of " +
+      formatGhs(order.total) + ". No goods to dispatch; reconcile separately.";
+  }
   return (
     `PAYMENT CONFIRMED: ${order.code} — ${formatGhs(order.total)} by ${order.fullName} ` +
     `(${order.phone}). Items: ${itemsSummary(order)}. Proceed with fulfilment.`

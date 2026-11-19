@@ -252,17 +252,17 @@ export async function notifyOrderPlaced(order: NotifyOrder): Promise<void> {
   if (adminEmailOn) {
     jobs.push(
       sendEmail(
-        `New order ${order.code} — ${formatGhs(order.total)}`,
+        order.isQaTest ? "QA LIVE payment test " + order.code + " — " + formatGhs(order.total) : `New order ${order.code} — ${formatGhs(order.total)}`,
         emailShell(
-          "NEW ORDER",
+          order.isQaTest ? "LIVE PAYMENT QA" : "NEW ORDER",
           "#b8860b",
-          `<p style="font-size:14px;margin:0;">A new order has just been placed on the Shiloh merch store.</p>
+          `<p style="font-size:14px;margin:0;">${order.isQaTest ? "An administrator started a REAL-money checkout test. No merchandise will be shipped." : "A new order has just been placed on the Shiloh merch store."}</p>
            ${itemsTableHtml(order)}
            <p style="font-size:14px;"><strong>Order code:</strong> ${order.code} &nbsp;•&nbsp; <strong>Total:</strong> ${formatGhs(order.total)}</p>
            <p style="font-size:14px;"><strong>Customer:</strong> ${order.fullName}<br/>
            <strong>Phone:</strong> ${order.phone}<br/>
            <strong>Address:</strong> see back office</p>
-           <p style="font-size:13px;color:#57534e;">Open the Back Office to review and process this order.</p>`
+           <p style="font-size:13px;color:#57534e;">${order.isQaTest ? "This is an administrative payment test. Do NOT dispatch goods." : "Open the Back Office to review and process this order."}</p>`
         ),
         "order_placed_admin",
         order.id
@@ -318,14 +318,16 @@ export async function notifyPaymentConfirmed(order: NotifyOrder): Promise<void> 
   if (adminEmailOn) {
     jobs.push(
       sendEmail(
-        `Payment received — ${order.code} (${formatGhs(order.total)})`,
+        order.isQaTest ? "QA test payment verified — " + order.code + " (" + formatGhs(order.total) + ")" : `Payment received — ${order.code} (${formatGhs(order.total)})`,
         emailShell(
-          "PAYMENT CONFIRMED",
+          order.isQaTest ? "TEST PAYMENT VERIFIED" : "PAYMENT CONFIRMED",
           "#15803d",
-          `<p style="font-size:14px;margin:0;">Hubtel payment for order <strong>${order.code}</strong> was verified.</p>
+          `<p style="font-size:14px;margin:0;">${order.isQaTest
+            ? "Hubtel verified this administrator REAL-MONEY test payment. No merchandise should be delivered."
+            : "Hubtel payment for order <strong>" + order.code + "</strong> was verified."}</p>
            ${itemsTableHtml(order)}
            <p style="font-size:14px;"><strong>Amount:</strong> ${formatGhs(order.total)} &nbsp;•&nbsp; <strong>Customer:</strong> ${order.fullName} (${order.phone})</p>
-           <p style="font-size:13px;color:#57534e;">The order is now paid — arrange delivery from the Back Office.</p>`
+           <p style="font-size:13px;color:#57534e;">${order.isQaTest ? "This is a QA transaction. Reconcile the small payment separately; do not dispatch goods." : "The order is now paid — arrange delivery from the Back Office."}</p>`
         ),
         "payment_confirmed_admin",
         order.id

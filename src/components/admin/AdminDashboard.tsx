@@ -249,6 +249,11 @@ function OrderDetail({
       </DialogHeader>
 
       <div className="flex flex-col gap-5 p-5">
+        {order.adminNotes?.startsWith("[LIVE_PAYMENT_QA]") ? (
+          <p className="rounded-xl border border-amber-500/35 bg-amber-500/10 p-3 text-sm font-semibold text-amber-300">
+            Administrator live-money PAYMENT TEST — this is not a merchandise order. Do not fulfil, ship or contact for delivery.
+          </p>
+        ) : null}
         {/* Customer */}
         <section className="grid gap-3 rounded-2xl border border-border bg-background/60 p-4 sm:grid-cols-2">
           <div>
@@ -657,6 +662,9 @@ function OrdersPanel({
                     <span className="font-display text-base font-bold tracking-wider text-gold">
                       {order.code}
                     </span>
+                    {order.adminNotes?.startsWith("[LIVE_PAYMENT_QA]") ? (
+                      <span className="rounded-lg border border-amber-500/35 px-2 py-1 text-xs font-bold text-amber-300">PAYMENT QA — NO GOODS</span>
+                    ) : null}
                     <StatusBadge status={order.status} />
                     <PaymentBadge status={order.paymentStatus} />
                   </div>
@@ -767,7 +775,9 @@ function OverviewPanel({
   error: boolean;
   onRefresh: () => void;
 }) {
-  const recentOrders = (data?.orders ?? []).slice(0, 5);
+  const recentOrders = (data?.orders ?? [])
+    .filter((order) => !order.adminNotes?.startsWith("[LIVE_PAYMENT_QA]"))
+    .slice(0, 5);
   const pending = data?.stats.pendingReview ?? 0;
   const verifying = data?.stats.verifyingPayment ?? 0;
 
@@ -1146,7 +1156,7 @@ export function AdminDashboard() {
             {section === "orders" ? (
               <OrdersPanel token={token} onPrintInvoice={(order) => runPrint({ kind: "invoice", order })} onPrintManifest={(orders) => runPrint({ kind: "manifest", orders })} />
             ) : null}
-            {section === "insights" ? <AdminInsights orders={data?.orders ?? null} loading={isLoading} /> : null}
+            {section === "insights" ? <AdminInsights orders={data?.orders?.filter((order) => !order.adminNotes?.startsWith("[LIVE_PAYMENT_QA]")) ?? null} loading={isLoading} /> : null}
             {section === "products" ? <AdminProducts token={token} /> : null}
             {section === "content" ? <AdminContent token={token} /> : null}
             {section === "alerts" ? <AdminAlerts token={token} /> : null}

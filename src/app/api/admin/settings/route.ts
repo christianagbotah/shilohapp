@@ -104,6 +104,7 @@ export async function GET(req: NextRequest) {
       shilohTagline: map.get("shiloh_tagline") ?? "Far Above",
       shilohDates: map.get("shiloh_dates") ?? "December 8–13",
       shilohStart: map.get("shiloh_start") ?? "2026-12-08",
+      paymentTestEnabled: process.env.SHILOH_LIVE_PAYMENT_TEST_ENABLED === "true",
       hubtel: {
         clientId: map.get("hubtel_client_id") ?? "",
         secretSet: Boolean(map.get("hubtel_client_secret")),

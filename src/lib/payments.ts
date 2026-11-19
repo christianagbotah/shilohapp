@@ -17,6 +17,7 @@ type OrderWithItems = Order & { items: OrderItem[] };
 export function toNotifyOrder(order: OrderWithItems): NotifyOrder {
   return {
     id: order.id, code: order.code, fullName: order.fullName, phone: order.phone,
+    isQaTest: order.adminNotes?.startsWith("[LIVE_PAYMENT_QA]") ?? false,
     total: order.total, itemCount: order.items.reduce((n, i) => n + i.quantity, 0),
     items: order.items.map((i) => ({
       productName: i.productName, color: i.color, size: i.size, quantity: i.quantity,
