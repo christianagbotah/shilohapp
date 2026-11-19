@@ -13,6 +13,9 @@ const initiateSchema = z.object({
 });
 
 export async function POST(req: NextRequest) {
+  if (process.env.NODE_ENV === "production" && process.env.SHILOH_PAYMENTS_ENABLED !== "true") {
+    return NextResponse.json({ error: "Online payments are not yet enabled. Your order can still be placed for follow-up." }, { status: 503 });
+  }
   try {
     const limit = rateLimit(`pay:${clientIp(req)}`, 12, 10 * 60_000);
     if (!limit.ok) {

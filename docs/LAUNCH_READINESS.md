@@ -69,3 +69,7 @@ following release gates are completed on the real hosted domain.
   copies of DB files in Git history require access control and assessment.
 - Encrypted credentials become unrecoverable if the encryption key is lost.
 - This release provides no formal inventory-reservation or refund automation.
+
+Runtime payment gate: keep SHILOH_PAYMENTS_ENABLED=false while onboarding;
+set it to true only after Hubtel transaction status checks pass and restart
+the app. Customer orders remain available with checkout disabled.

@@ -39,7 +39,11 @@ export async function GET() {
       shilohDates: shilohDates ?? STORE_INFO_DEFAULTS.shilohDates,
       shilohStart: shilohStart ?? STORE_INFO_DEFAULTS.shilohStart,
       /** True when the admin has activated Hubtel online checkout. */
-      hubtelActive: Boolean(hubtelClientId && hubtelClientSecret && hubtelMerchantNumber && (siteUrl || process.env.NEXT_PUBLIC_SITE_URL)),
+      hubtelActive: Boolean(
+        (process.env.NODE_ENV !== "production" || process.env.SHILOH_PAYMENTS_ENABLED === "true") &&
+        hubtelClientId && hubtelClientSecret && hubtelMerchantNumber &&
+        (siteUrl || process.env.NEXT_PUBLIC_SITE_URL)
+      ),
       /** Team contact number in international format for the WhatsApp
        *  click-to-chat button ("" when admin_phone is not configured). */
       supportPhone: adminPhone ? toInternationalGhPhone(adminPhone).replace("+", "") : "",
