@@ -287,12 +287,16 @@ export function AdminSettings({ token }: { token: string }) {
         message?: string;
         error?: string;
         hint?: string;
+        inconclusive?: boolean;
       };
       if (res.ok && data.success) {
-        toast({ title: "Hubtel checkout API responding", description: "Complete a real payment and transaction-status check before launch." });
+        toast({
+          title: "Hubtel checkout accepted",
+          description: data.message || "Hubtel returned a valid hosted checkout link. Complete a real payment and verify its status before launch.",
+        });
       } else {
         toast({
-          title: "Hubtel test failed",
+          title: data.inconclusive ? "Hubtel test inconclusive" : "Hubtel checkout rejected",
           description: [data.error, data.hint].filter(Boolean).join(" "),
           variant: "destructive",
         });
@@ -413,13 +417,13 @@ export function AdminSettings({ token }: { token: string }) {
         <Field
           id="site-url"
           label="Public site URL"
-          hint="Used for Hubtel payment callbacks. Must be reachable from the internet."
+          hint="Your storefront address: https://shiloh.lightworldtech.com (not /backoffice). Used for payment callbacks and customer return URLs. Click Save before testing."
         >
           <Input
             id="site-url"
             value={siteUrl}
             onChange={(e) => setSiteUrl(e.target.value)}
-            placeholder="https://shilohmerch.com"
+            placeholder="https://shiloh.lightworldtech.com"
             className={`${inputCls} text-sm`}
             maxLength={200}
           />

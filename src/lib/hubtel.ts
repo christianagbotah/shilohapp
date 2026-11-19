@@ -23,6 +23,11 @@
  */
 import { getSetting } from "@/lib/store-utils";
 import { formatGhs } from "@/lib/format";
+import {
+  explainHubtelCheckoutFailure,
+  isTrustedHubtelCheckoutUrl,
+  parseHubtelCheckoutResponse,
+} from "@/lib/hubtel-checkout-response";
 
 // ---------------------------------------------------------------------------
 // Endpoints (adjust here if the provider payloads change)
@@ -177,39 +182,15 @@ export async function initiateCheckout(
       data = {};
     }
 
-    if (!res.ok) {
-      const message =
-        (data["message"] as string) ||
-        (data["Message"] as string) ||
-        (data["responseMessage"] as string) ||
-        (data["responseCode"] ? `response code ${data["responseCode"]}` : "") ||
-        `Hubtel rejected the checkout (HTTP ${res.status})`;
-      return { ok: false, error: message, ambiguous: false };
+    // HTTP status 200 is only transport success. Hubtel's v1 checkout
+    // response has { responseCode: "0000", data: { checkoutUrl } }.
+    const parsed = parseHubtelCheckoutResponse(data);
+    if (!res.ok || parsed.responseCode !== "0000" || !parsed.checkoutUrl ||
+        !isTrustedHubtelCheckoutUrl(parsed.checkoutUrl)) {
+      const failure = explainHubtelCheckoutFailure(parsed, res.status);
+      return { ok: false, error: failure.error, ambiguous: failure.inconclusive };
     }
-
-    // Response is camelCase: { checkoutUrl, responseCode, responseMessage, ... }
-    const nested = data["data"] as Record<string, unknown> | undefined;
-    if (data["responseCode"] !== "0000") {
-      return { ok: false, error: String(data["message"] || data["responseMessage"] || "Hubtel rejected checkout"), ambiguous: false };
-    }
-    const url =
-      (data["checkoutUrl"] as string) ||
-      (data["CheckoutUrl"] as string) ||
-      (nested?.["checkoutUrl"] as string) ||
-      (data["url"] as string) ||
-      "";
-    if (!url) {
-      return { ok: false, error: "Hubtel did not return a checkout URL", ambiguous: true };
-    }
-    // Never redirect a customer to an unexpected URL returned by a provider.
-    try {
-      const target = new URL(url);
-      if (target.protocol !== "https:" || target.hostname !== "pay.hubtel.com") {
-        return { ok: false, error: "Unexpected Hubtel checkout URL", ambiguous: true };
-      }
-    } catch {
-      return { ok: false, error: "Invalid Hubtel checkout URL", ambiguous: true };
-    }
+    const url = parsed.checkoutUrl;
     return { ok: true, url, token: clientReference };
   } catch (err) {
     const error =
@@ -582,7 +563,7 @@ export function smsStatusUpdateCustomer(
 
 export type TestResult =
   | { ok: true; message: string }
-  | { ok: false; error: string; hint?: string };
+  | { ok: false; error: string; hint?: string; inconclusive?: boolean };
 
 /**
  * Verify saved Hubtel credentials by initiating a GHS 0.01 test checkout
@@ -602,7 +583,26 @@ export async function testHubtelConnection(origin: string): Promise<TestResult> 
     };
   }
 
-  const base = config.siteUrl || origin.replace(/\/+$/, "");
+  const base = config.siteUrl ||
+    (process.env.NODE_ENV !== "production" ? origin.replace(/\/+$/, "") : "");
+  try {
+    const publicSite = new URL(base);
+    if (publicSite.protocol !== "https:" ||
+        publicSite.username || publicSite.password ||
+        publicSite.search || publicSite.hash || publicSite.pathname !== "/") {
+      return {
+        ok: false,
+        error: "Set the Public Site URL to https://shiloh.lightworldtech.com (without /backoffice).",
+        inconclusive: false,
+      };
+    }
+  } catch {
+    return {
+      ok: false,
+      error: "Enter a valid HTTPS Public Site URL before testing Hubtel.",
+      inconclusive: false,
+    };
+  }
   try {
     const res = await fetch(INITIATE_URL, {
       method: "POST",
@@ -631,25 +631,16 @@ export async function testHubtelConnection(origin: string): Promise<TestResult> 
       data = {};
     }
 
-    if (res.ok && (data["checkoutUrl"] || data["url"])) {
+    const parsed = parseHubtelCheckoutResponse(data);
+    if (res.ok && parsed.responseCode === "0000" &&
+        parsed.checkoutUrl && isTrustedHubtelCheckoutUrl(parsed.checkoutUrl)) {
       return {
         ok: true,
-        message: "Checkout initiation works. Transaction-status verification still needs a full payment test.",
+        message: "Hubtel Online Checkout accepted the request (code 0000) and returned a valid hosted checkout link. No payment was charged. Full payment verification has not yet been tested.",
       };
     }
-
-    let hint = "";
-    if (res.status === 401 || res.status === 403) {
-      hint = "Check the API Username and API Key — these are the Online Checkout credentials from your Hubtel account.";
-    } else if (res.status === 400) {
-      hint = "The request was rejected — most likely the Merchant Account Number is wrong.";
-    }
-    const message =
-      (data["message"] as string) ||
-      (data["Message"] as string) ||
-      (data["responseMessage"] as string) ||
-      `Hubtel returned HTTP ${res.status}`;
-    return { ok: false, error: message, hint };
+    const failure = explainHubtelCheckoutFailure(parsed, res.status);
+    return { ok: false, ...failure };
   } catch {
     return { ok: false, error: "Could not reach Hubtel — check your internet connection." };
   }
