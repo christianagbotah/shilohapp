@@ -11,6 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { fetchJson } from "@/hooks/use-store-data";
 import { useToast } from "@/hooks/use-toast";
 import type { SiteContent } from "@/lib/site-content";
+import { prepareSectionForSave, splitCommasForEditing, splitLinesForEditing } from "@/lib/content-editor";
 import { cn } from "@/lib/utils";
 
 // ---------------------------------------------------------------------------
@@ -191,6 +192,9 @@ export function AdminContent({ token }: { token: string }) {
   const [savingSection, setSavingSection] = useState<string | null>(null);
   const [content, setContent] = useState<SiteContent | null>(null);
   const [saved, setSaved] = useState<SiteContent | null>(null);
+  // Store comma-separated input as literal text while typing. Formatting it
+  // back to a joined array on every keystroke would reset the cursor.
+  const [paymentMethodsDraft, setPaymentMethodsDraft] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -226,14 +230,23 @@ export function AdminContent({ token }: { token: string }) {
 
   const save = async (section: keyof SiteContent) => {
     if (!content) return;
+    const original = content[section];
+    const data = prepareSectionForSave(section, content);
+    const submittedMethodsDraft = paymentMethodsDraft;
     setSavingSection(section);
     try {
       await fetchJson("/api/admin/content", {
         method: "PUT",
         headers: { "Content-Type": "application/json", "x-admin-token": token },
-        body: JSON.stringify({ section, data: content[section] }),
+        body: JSON.stringify({ section, data }),
       });
-      setSaved((s) => (s ? { ...s, [section]: content[section] } : content));
+      setSaved((s) => ({ ...(s ?? content), [section]: data }));
+      // Only replace the editor draft if nothing changed since Save was
+      // clicked. Otherwise preserve any typing during the network request.
+      setContent((c) => (c && c[section] === original ? { ...c, [section]: data } : c));
+      if (section === "payment") {
+        setPaymentMethodsDraft((draft) => draft === submittedMethodsDraft ? null : draft);
+      }
       await queryClient.invalidateQueries({ queryKey: ["store-info"] });
       toast({ title: "Saved", description: "The storefront updates immediately." });
     } catch (err) {
@@ -250,6 +263,7 @@ export function AdminContent({ token }: { token: string }) {
   const reset = (section: keyof SiteContent) => {
     if (!saved) return;
     setContent((c) => (c ? { ...c, [section]: saved[section] } : c));
+    if (section === "payment") setPaymentMethodsDraft(null);
   };
 
   if (loading) {
@@ -316,7 +330,7 @@ export function AdminContent({ token }: { token: string }) {
             id="hero-trust"
             className={areaCls}
             value={h.trust.join("\n")}
-            onChange={(e) => patch("hero", { trust: e.target.value.split("\n").map((t) => t.trim()).filter(Boolean) })}
+            onChange={(e) => patch("hero", { trust: splitLinesForEditing(e.target.value) })}
           />
         </Field>
       </Section>
@@ -334,7 +348,7 @@ export function AdminContent({ token }: { token: string }) {
             id="marquee-items"
             className={areaCls}
             value={content.marquee.extras.join("\n")}
-            onChange={(e) => patch("marquee", { extras: e.target.value.split("\n").map((t) => t.trim()).filter(Boolean) })}
+            onChange={(e) => patch("marquee", { extras: splitLinesForEditing(e.target.value) })}
           />
         </Field>
       </Section>
@@ -497,15 +511,18 @@ export function AdminContent({ token }: { token: string }) {
             id="pay-steps"
             className={areaCls}
             value={p.steps.join("\n")}
-            onChange={(e) => patch("payment", { steps: e.target.value.split("\n").map((t) => t.trim()).filter(Boolean) })}
+            onChange={(e) => patch("payment", { steps: splitLinesForEditing(e.target.value) })}
           />
         </Field>
         <Field id="pay-methods" label="Accepted methods (chips)" hint="Comma separated, e.g. MTN MoMo, Telecel Cash, Visa.">
           <Input
             id="pay-methods"
             className={inputCls}
-            value={p.methods.join(", ")}
-            onChange={(e) => patch("payment", { methods: e.target.value.split(",").map((t) => t.trim()).filter(Boolean) })}
+            value={paymentMethodsDraft ?? p.methods.join(", ")}
+            onChange={(e) => {
+              setPaymentMethodsDraft(e.target.value);
+              patch("payment", { methods: splitCommasForEditing(e.target.value) });
+            }}
           />
         </Field>
         <Field id="pay-btn" label="Button label">
