@@ -29,6 +29,7 @@ export type FinalizeOutcome = {
   paymentStatus: "unpaid" | "verifying" | "paid";
   hubtelStatus: "success" | "cancelled" | "failed" | "pending" | "refunded" | "unknown" | "not-checked";
   alreadyPaid: boolean;
+  verificationError?: string;
 };
 
 function currentStatus(order: OrderWithItems, hubtelStatus: FinalizeOutcome["hubtelStatus"]): FinalizeOutcome {
@@ -167,7 +168,11 @@ export async function applyWebhookResult(
   }
   if (info.amount !== null &&
       Math.round(info.amount * 100) !== (attempt?.expectedPesewas ?? Math.round(order.total * 100))) {
-    console.error("Hubtel callback amount mismatch", { reference, order: order.code });
+    console.error("Hubtel callback amount mismatch", {
+      reference, order: order.code,
+      callbackAmount: info.amount,
+      expectedAmount: (attempt?.expectedPesewas ?? Math.round(order.total * 100)) / 100,
+    });
     return currentStatus(order, "unknown");
   }
   // Never translate a failure hint + a provider Unpaid/pending status
@@ -190,7 +195,8 @@ async function verifyAndApply(
       });
     }
     return { paymentStatus: order.paymentStatus === "paid" ? "paid" : "verifying",
-      hubtelStatus: "unknown", alreadyPaid: order.paymentStatus === "paid" };
+      hubtelStatus: "unknown", alreadyPaid: order.paymentStatus === "paid",
+      verificationError: result.error };
   }
   if (result.status === "success") {
     if (!verifyAmount(order, reference, result, attempt)) {

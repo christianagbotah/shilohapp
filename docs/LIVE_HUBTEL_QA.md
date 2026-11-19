@@ -43,3 +43,24 @@ successful connection test.
 
 Safety: no credentials, OTP, wallet PIN or payment card information should be
 entered into ChatGPT or repository files.
+
+## If checkout charged money but payment remains "verifying"
+
+Do not retry payment or recreate checkout. The administrator QA endpoint blocks
+additional real-money test transactions while any previous QA test is unresolved.
+
+The authoritative Hubtel Transaction Status API can return HTTP 403 if the
+outbound server IPv4 is not allowlisted for the merchant account, or the account
+lacks the required service permission. Ask Hubtel's Retail Systems Engineer to
+allowlist the actual production outbound IPv4 for Transaction Status and confirm
+API key scope. Check the server egress IPv4 using curl -4 https://ifconfig.me/ip.
+
+Only Hubtel's authoritative Paid status with exactly matching reference and
+order amount may transition to paid. A callback received with a different
+amount is not enough, and browser redirects are never financial proof.
+
+Once Hubtel enables the status service, the five-minute reconciliation job
+and administrator Refresh can safely retry the existing reference without
+creating another payment. SMS payment-confirmation notifications fire only on
+the first durable successful paid transition. Provider SMS Accepted is not
+proof of handset delivery.

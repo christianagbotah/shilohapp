@@ -34,6 +34,22 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
   if (process.env.SHILOH_LIVE_PAYMENT_TEST_ENABLED !== "true") return unavailable();
+
+  // Never allow another real-money QA checkout while an earlier one has an
+  // unresolved charge. This rule survives restarts and applies across devices.
+  const unresolved = await db.order.findFirst({
+    where: { adminNotes: { startsWith: QA_MARKER }, paymentStatus: "verifying" },
+    orderBy: { createdAt: "desc" },
+    select: { code: true },
+  });
+  if (unresolved) {
+    return NextResponse.json({
+      error: "Another real-money test (" + unresolved.code + ") is still verifying. Do not pay again. Contact Hubtel to resolve its status first.",
+      code: unresolved.code,
+      pending: true,
+    }, { status: 409 });
+  }
+
   const limited = rateLimit("live-payment-qa:" + clientIp(req), 2, 60 * 60_000);
   if (!limited.ok) {
     return NextResponse.json({
@@ -191,9 +207,11 @@ export async function GET(req: NextRequest) {
       ? await db.paymentAttempt.findUnique({ where: { reference: order.paymentToken } })
       : null;
 
+    let verificationIssue: string | null = null;
     if (order.paymentStatus === "verifying" &&
         (!attempt?.lastCheckedAt || Date.now() - attempt.lastCheckedAt.getTime() >= 20_000)) {
-      await finalizePaymentFromHubtel(order);
+      const outcome = await finalizePaymentFromHubtel(order);
+      verificationIssue = outcome.verificationError ?? null;
       order = await db.order.findUniqueOrThrow({ where: { code }, include: { items: true } });
       attempt = order.paymentToken
         ? await db.paymentAttempt.findUnique({ where: { reference: order.paymentToken } })
@@ -211,6 +229,7 @@ export async function GET(req: NextRequest) {
       amount: order.total,
       paymentStatus: order.paymentStatus,
       attemptStatus: attempt?.status ?? null,
+      verificationIssue,
       paidAt: order.paidAt?.toISOString() ?? null,
       verifiedAmount: attempt?.verifiedAmount ?? null,
       checkoutUrl: order.paymentStatus === "verifying" && attempt?.status === "open"

@@ -7,8 +7,9 @@ import { beforeAll, beforeEach, afterAll, describe, test, expect } from "bun:tes
 import { db } from "../src/lib/db";
 import { NextRequest } from "next/server";
 import { POST as initiatePayment } from "../src/app/api/payments/initiate/route";
+import { POST as createLivePaymentTest } from "../src/app/api/admin/payments/live-test/route";
 import { applyWebhookResult, finalizePaymentFromHubtel } from "../src/lib/payments";
-import { hashPassword, verifyAdminPassword } from "../src/lib/admin-auth";
+import { hashPassword, verifyAdminPassword, issueAdminSession, ADMIN_COOKIE } from "../src/lib/admin-auth";
 
 const originalFetch = globalThis.fetch;
 const CODE = "SHL-ABC234";
@@ -190,6 +191,50 @@ describe("Hubtel money-state integrity", () => {
     await finalizePaymentFromHubtel(order);
     await applyWebhookResult(order, { status: "failed", clientReference: REF, transactionId: "mock", amount: 80 }, order.paymentAttempts[0]);
     expect((await db.order.findUniqueOrThrow({ where: { id: order.id } })).paymentStatus).toBe("paid");
+  });
+
+  test("Hubtel 403 remains unverified and exposes the actual verification issue", async () => {
+    const order = await newOrder();
+    globalThis.fetch = (async () => new Response("Forbidden", { status: 403 })) as unknown as typeof fetch;
+    const outcome = await finalizePaymentFromHubtel(order);
+    expect(outcome.hubtelStatus).toBe("unknown");
+    expect(outcome.verificationError).toContain("HTTP 403");
+    expect((await db.order.findUniqueOrThrow({ where: { id: order.id } })).paymentStatus).toBe("verifying");
+    expect((await db.paymentAttempt.findUniqueOrThrow({ where: { reference: REF } })).status).toBe("unknown");
+    expect(await db.notificationLog.count({ where: { orderId: order.id, purpose: "payment_confirmed_customer" } })).toBe(0);
+  });
+
+  test("authenticated administrator cannot charge a second QA transaction while one is unresolved", async () => {
+    const order = await newOrder();
+    await db.order.update({
+      where: { id: order.id },
+      data: { adminNotes: "[LIVE_PAYMENT_QA] Pending real-money trial" },
+    });
+    const originalFlag = process.env.SHILOH_LIVE_PAYMENT_TEST_ENABLED;
+    process.env.SHILOH_LIVE_PAYMENT_TEST_ENABLED = "true";
+    try {
+      const session = await issueAdminSession();
+      const request = new NextRequest("https://shiloh.lightworldtech.com/api/admin/payments/live-test", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          origin: "https://shiloh.lightworldtech.com",
+          host: "shiloh.lightworldtech.com",
+          cookie: ADMIN_COOKIE + "=" + session,
+        },
+        body: JSON.stringify({ phone: "0241234567", amount: 1 }),
+      });
+      const response = await createLivePaymentTest(request);
+      const body = await response.json() as { code?: string; pending?: boolean };
+      expect(response.status).toBe(409);
+      expect(body.pending).toBe(true);
+      expect(body.code).toBe(CODE);
+      expect(await db.order.count()).toBe(1);
+      await db.adminSession.deleteMany();
+    } finally {
+      if (originalFlag === undefined) delete process.env.SHILOH_LIVE_PAYMENT_TEST_ENABLED;
+      else process.env.SHILOH_LIVE_PAYMENT_TEST_ENABLED = originalFlag;
+    }
   });
 
   test("Hubtel network errors leave order unresolved, not unpaid", async () => {

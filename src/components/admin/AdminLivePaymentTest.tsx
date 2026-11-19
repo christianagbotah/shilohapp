@@ -20,6 +20,7 @@ type LiveTestStatus = {
   amount: number;
   paymentStatus: string;
   attemptStatus: string | null;
+  verificationIssue: string | null;
   paidAt: string | null;
   verifiedAmount: number | null;
   checkoutUrl: string | null;
@@ -64,6 +65,7 @@ export function AdminLivePaymentTest({
   const [checkoutLink, setCheckoutLink] = useState<string | null>(null);
   const [status, setStatus] = useState<LiveTestStatus | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [verificationIssue, setVerificationIssue] = useState<string | null>(null);
   const polling = useRef(false);
 
   useEffect(() => {
@@ -92,6 +94,8 @@ export function AdminLivePaymentTest({
         { headers: { "x-admin-token": token } }
       );
       setStatus(response);
+      if (response.paymentStatus === "paid") setVerificationIssue(null);
+      else if (response.verificationIssue) setVerificationIssue(response.verificationIssue);
       setError(null);
       if (response.checkoutUrl) setCheckoutLink(response.checkoutUrl);
     } catch (err) {
@@ -128,6 +132,7 @@ export function AdminLivePaymentTest({
       setLookupCode(result.code);
       setCheckoutLink(result.url);
       setStatus(null);
+      setVerificationIssue(null);
       setConsent(false);
       try { window.sessionStorage.setItem(STORAGE_KEY, result.code); } catch { /* optional */ }
     } catch (err) {
@@ -146,6 +151,7 @@ export function AdminLivePaymentTest({
     setCode(normalized);
     setStatus(null);
     setCheckoutLink(null);
+    setVerificationIssue(null);
     setError(null);
     try { window.sessionStorage.setItem(STORAGE_KEY, normalized); } catch { /* optional */ }
     void readStatus(normalized);
@@ -267,7 +273,7 @@ export function AdminLivePaymentTest({
             </span>
           </div>
 
-          {!paid && checkoutLink && status?.attemptStatus !== "failed" && status?.attemptStatus !== "cancelled" ? (
+          {!paid && checkoutLink && (!status || status.attemptStatus === "open") ? (
             <a
               href={checkoutLink}
               target="_blank"
@@ -279,10 +285,19 @@ export function AdminLivePaymentTest({
             </a>
           ) : null}
 
-          {checkoutLink && !paid && status?.attemptStatus !== "failed" && status?.attemptStatus !== "cancelled" ? (
+          {checkoutLink && !paid && (!status || status.attemptStatus === "open") ? (
             <p className="text-xs text-amber-300">
               Complete this payment only once. Do not open another payment attempt
               if your phone was charged; check the status below instead.
+            </p>
+          ) : null}
+
+          {!paid && verificationIssue ? (
+            <p role="alert" className="rounded-xl border border-amber-500/40 bg-amber-500/10 p-3 text-xs leading-relaxed text-amber-300">
+              Payment verification is blocked: {verificationIssue}.
+              {verificationIssue.includes("403")
+                ? " Hubtel requires the VPS outbound IP 163.245.212.15 to be allowlisted for Transaction Status. Do not pay again; the existing payment will be rechecked after Hubtel grants access."
+                : " Do not pay again until the existing payment has been independently confirmed."}
             </p>
           ) : null}
 
