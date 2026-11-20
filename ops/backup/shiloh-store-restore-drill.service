@@ -1,0 +1,13 @@
+[Unit]
+Description=Verify Shiloh Store SQLite backup can actually be restored
+After=shiloh-store-backup.service
+
+[Service]
+Type=oneshot
+User=lightworld
+Group=lightworld
+EnvironmentFile=/etc/shiloh-store.env
+ExecStart=/usr/bin/python3 /home/lightworld/services/shiloh-inventory/restore_drill.py
+PrivateTmp=true
+NoNewPrivileges=true
+ProtectSystem=full
