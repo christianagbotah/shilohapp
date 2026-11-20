@@ -56,7 +56,7 @@ describe("Admin-only real-money test safeguards", () => {
     expect(smsOrderPlacedAdmin(sample)).toContain("Do not fulfil");
     expect(smsPaymentConfirmedCustomer(sample)).toContain("REAL-money test");
     expect(smsPaymentConfirmedAdmin(sample)).toContain("No goods");
-    expect(smsPaymentConfirmedCustomer(sample)).toContain("₵1");
+    expect(smsPaymentConfirmedCustomer(sample)).toContain("GHS 1.00");
   });
 
   test("ordinary customer payment confirmation still describes delivery", () => {
