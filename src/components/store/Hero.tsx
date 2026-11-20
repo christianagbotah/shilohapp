@@ -146,21 +146,21 @@ export function Hero() {
           <motion.div
             {...fadeUp}
             transition={{ duration: 0.55, delay: 0.24, ease: "easeOut" }}
-            className="flex flex-wrap items-center gap-3"
+            className="grid w-full grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)] items-center gap-2 sm:flex sm:w-auto sm:flex-wrap sm:gap-3"
           >
             <Button
               asChild
-              className="h-12 rounded-full bg-gradient-to-r from-gold to-gold-deep px-7 text-base font-bold text-primary-foreground shadow-[0_14px_40px_-12px_var(--gold)] hover:opacity-95"
+              className="h-11 min-w-0 w-full rounded-full bg-gradient-to-r from-gold to-gold-deep px-2 text-xs font-bold text-primary-foreground shadow-[0_14px_40px_-12px_var(--gold)] hover:opacity-95 sm:h-12 sm:w-auto sm:px-7 sm:text-base"
             >
               <a href="#shop">
                 {c.ctaPrimary}
-                <ArrowDown className="ml-1 h-4 w-4" aria-hidden />
+                <ArrowDown className="ml-0.5 h-3.5 w-3.5 shrink-0 sm:ml-1 sm:h-4 sm:w-4" aria-hidden />
               </a>
             </Button>
             <Button
               asChild
               variant="outline"
-              className="h-12 rounded-full border-border px-6 text-base font-semibold hover:border-gold/40 hover:bg-secondary hover:text-gold"
+              className="h-11 min-w-0 w-full rounded-full border-border px-1.5 text-xs font-semibold hover:border-gold/40 hover:bg-secondary hover:text-gold sm:h-12 sm:w-auto sm:px-6 sm:text-base"
             >
               <a href="#payment">{c.ctaSecondary}</a>
             </Button>
