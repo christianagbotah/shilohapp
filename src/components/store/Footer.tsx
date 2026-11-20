@@ -8,7 +8,6 @@ import { STORE_INFO_DEFAULTS } from "@/lib/types";
 import { DEFAULT_SITE_CONTENT, hydrate } from "@/lib/site-content";
 
 export function Footer() {
-  const setView = useUi((s) => s.setView);
   const setTrackOpen = useUi((s) => s.setTrackOpen);
   const { data: info } = useStoreInfo();
   const year = info?.shilohYear ?? STORE_INFO_DEFAULTS.shilohYear;
@@ -63,14 +62,13 @@ export function Footer() {
                 </button>
               </li>
               <li>
-                <button
-                  type="button"
-                  onClick={() => setView("admin")}
+                <a
+                  href="/backoffice"
                   className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:border-gold/40 hover:text-gold"
                 >
                   <Lock className="h-3 w-3" aria-hidden />
                   Back Office
-                </button>
+                </a>
               </li>
             </ul>
           </nav>

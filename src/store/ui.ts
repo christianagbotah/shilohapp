@@ -28,12 +28,9 @@ type UiState = {
   setPlacedOrderNotice: (notice: string | null) => void;
 };
 
-const initialToken =
-  typeof window !== "undefined" ? window.localStorage.getItem("shiloh-admin-token") : null;
-
 export const useUi = create<UiState>()((set) => ({
   view: "store",
-  adminToken: initialToken,
+  adminToken: null,
   activeProduct: null,
   cartOpen: false,
   checkoutOpen: false,
@@ -42,13 +39,7 @@ export const useUi = create<UiState>()((set) => ({
   placedOrder: null,
   placedOrderNotice: null,
   setView: (view) => set({ view }),
-  setAdminToken: (token) => {
-    if (typeof window !== "undefined") {
-      if (token) window.localStorage.setItem("shiloh-admin-token", token);
-      else window.localStorage.removeItem("shiloh-admin-token");
-    }
-    set({ adminToken: token });
-  },
+  setAdminToken: (token) => set({ adminToken: token }),
   openProduct: (p) => set({ activeProduct: p }),
   closeProduct: () => set({ activeProduct: null }),
   setCartOpen: (cartOpen) => set({ cartOpen }),

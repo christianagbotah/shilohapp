@@ -37,13 +37,13 @@ export async function generateMetadata(): Promise<Metadata> {
     : new URL("http://localhost:3000");
   return {
     metadataBase,
-    title: `Shiloh ${year} — ${tagline} | Official Merch Store | Winners Chapel International`,
-    description: `Official Shiloh ${year} “${tagline}” convocation merchandise for the Winners' family worldwide. T-shirts, lacostes, jerseys and caps for adults & kids. Order in seconds and pay with MTN Mobile Money across Ghana.`,
+    title: `Shiloh ${year} — ${tagline} | Official Shiloh Orders | Winners Chapel International`,
+    description: `Official Shiloh ${year} “${tagline}” convocation clothing and accessories for the Winners' family worldwide. T-shirts, lacostes, jerseys and caps for adults & kids. Order in seconds and pay with MTN Mobile Money across Ghana.`,
     keywords: [
       `Shiloh ${year}`,
       `Shiloh ${year} ${tagline}`,
       "Winners Chapel",
-      "convocation merch",
+      "Shiloh 2026 products",
       "Shiloh t-shirt",
       "Shiloh jersey",
       "Shiloh lacoste",
@@ -60,7 +60,7 @@ export async function generateMetadata(): Promise<Metadata> {
           url: "/og-shiloh.jpg",
           width: 1344,
           height: 768,
-          alt: `Shiloh ${year} “${tagline}” — official merch: tees, lacostes, jerseys & caps`,
+          alt: `Shiloh ${year} “${tagline}” — Shiloh collection: tees, lacostes, jerseys & caps`,
         },
       ],
     },
@@ -68,7 +68,7 @@ export async function generateMetadata(): Promise<Metadata> {
       card: "summary_large_image",
       title: `Shiloh ${year} — ${tagline}`,
       description:
-        "Official Shiloh merch — tees, lacostes, jerseys & caps. Pay securely with MoMo or card via Hubtel.",
+        "Official Shiloh collection — tees, lacostes, jerseys & caps. Pay securely with MoMo or card via Hubtel.",
       images: ["/og-shiloh.jpg"],
     },
   };

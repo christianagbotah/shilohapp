@@ -3,14 +3,16 @@
 import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import { useQueryClient } from "@tanstack/react-query";
-import { Loader2, Plus, RotateCcw, Save, Trash2, Upload } from "lucide-react";
+import { ImageIcon, Loader2, Plus, RotateCcw, Save, Trash2, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { fetchJson } from "@/hooks/use-store-data";
+import { MediaLibraryPicker } from "@/components/admin/MediaLibraryPicker";
 import { useToast } from "@/hooks/use-toast";
 import type { SiteContent } from "@/lib/site-content";
+import { prepareSectionForSave, splitCommasForEditing, splitLinesForEditing } from "@/lib/content-editor";
 import { cn } from "@/lib/utils";
 
 // ---------------------------------------------------------------------------
@@ -18,6 +20,7 @@ import { cn } from "@/lib/utils";
 // ---------------------------------------------------------------------------
 
 function Section({
+  id,
   title,
   description,
   children,
@@ -25,6 +28,7 @@ function Section({
   saving,
   onReset,
 }: {
+  id: string;
   title: string;
   description: string;
   children: React.ReactNode;
@@ -33,7 +37,7 @@ function Section({
   onReset?: () => void;
 }) {
   return (
-    <section className="rounded-2xl border border-border bg-card p-5 sm:p-6">
+    <section id={id} className="scroll-mt-36 rounded-2xl border border-border bg-card p-5 sm:p-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h3 className="font-display text-lg font-bold">{title}</h3>
@@ -116,6 +120,7 @@ function ImageField({
 }) {
   const { toast } = useToast();
   const [uploading, setUploading] = useState(false);
+  const [libraryOpen, setLibraryOpen] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
   const pick = async (file: File) => {
@@ -142,9 +147,9 @@ function ImageField({
 
   return (
     <Field id={id} label={label} hint="JPG, PNG or WebP up to 4 MB.">
-      <div className="flex items-center gap-3">
+      <div className="flex flex-wrap items-center gap-3">
         <div className={cn("relative w-28 shrink-0 overflow-hidden rounded-lg border border-border bg-secondary", aspect)}>
-          <Image src={value || "/images/shiloh-flyer.jpg"} alt="" fill sizes="112px" className="object-cover" />
+          <Image src={value || "/images/shiloh-flyer.jpg"} alt="" fill sizes="112px" unoptimized={value.startsWith("/products/")} className="object-cover" />
         </div>
         <input
           ref={fileRef}
@@ -162,6 +167,16 @@ function ImageField({
           type="button"
           variant="outline"
           size="sm"
+          onClick={() => setLibraryOpen(true)}
+          className="rounded-full"
+        >
+          <ImageIcon className="mr-1.5 h-3.5 w-3.5" aria-hidden />
+          Browse library
+        </Button>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
           onClick={() => fileRef.current?.click()}
           disabled={uploading}
           className="rounded-full"
@@ -174,6 +189,13 @@ function ImageField({
           {uploading ? "Uploading…" : "Upload image"}
         </Button>
       </div>
+      <MediaLibraryPicker
+        open={libraryOpen}
+        onOpenChange={setLibraryOpen}
+        onSelect={onChange}
+        token={token}
+        title={"Choose " + label.toLowerCase()}
+      />
     </Field>
   );
 }
@@ -191,6 +213,9 @@ export function AdminContent({ token }: { token: string }) {
   const [savingSection, setSavingSection] = useState<string | null>(null);
   const [content, setContent] = useState<SiteContent | null>(null);
   const [saved, setSaved] = useState<SiteContent | null>(null);
+  // Store comma-separated input as literal text while typing. Formatting it
+  // back to a joined array on every keystroke would reset the cursor.
+  const [paymentMethodsDraft, setPaymentMethodsDraft] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -226,14 +251,23 @@ export function AdminContent({ token }: { token: string }) {
 
   const save = async (section: keyof SiteContent) => {
     if (!content) return;
+    const original = content[section];
+    const data = prepareSectionForSave(section, content);
+    const submittedMethodsDraft = paymentMethodsDraft;
     setSavingSection(section);
     try {
       await fetchJson("/api/admin/content", {
         method: "PUT",
         headers: { "Content-Type": "application/json", "x-admin-token": token },
-        body: JSON.stringify({ section, data: content[section] }),
+        body: JSON.stringify({ section, data }),
       });
-      setSaved((s) => (s ? { ...s, [section]: content[section] } : content));
+      setSaved((s) => ({ ...(s ?? content), [section]: data }));
+      // Only replace the editor draft if nothing changed since Save was
+      // clicked. Otherwise preserve any typing during the network request.
+      setContent((c) => (c && c[section] === original ? { ...c, [section]: data } : c));
+      if (section === "payment") {
+        setPaymentMethodsDraft((draft) => draft === submittedMethodsDraft ? null : draft);
+      }
       await queryClient.invalidateQueries({ queryKey: ["store-info"] });
       toast({ title: "Saved", description: "The storefront updates immediately." });
     } catch (err) {
@@ -250,6 +284,7 @@ export function AdminContent({ token }: { token: string }) {
   const reset = (section: keyof SiteContent) => {
     if (!saved) return;
     setContent((c) => (c ? { ...c, [section]: saved[section] } : c));
+    if (section === "payment") setPaymentMethodsDraft(null);
   };
 
   if (loading) {
@@ -272,8 +307,34 @@ export function AdminContent({ token }: { token: string }) {
         open in another tab). {TOKEN_HINT}
       </div>
 
+      <nav
+        aria-label="Jump to content section"
+        className="sticky top-16 z-20 -mx-1 flex gap-2 overflow-x-auto rounded-xl border border-border bg-card/95 px-3 py-3 shadow-sm backdrop-blur-md"
+      >
+        {([
+          ["hero", "Hero"],
+          ["marquee", "Marquee"],
+          ["shop", "Shop"],
+          ["how", "How to order"],
+          ["payment", "Payments"],
+          ["faq", "FAQ"],
+          ["cta", "Call to action"],
+          ["footer", "Footer"],
+          ["lookbook", "Lookbook"],
+        ] as const).map(([key, label]) => (
+          <a
+            key={key}
+            href={"#content-" + key}
+            className="shrink-0 rounded-lg border border-border bg-background px-3 py-2 text-xs font-semibold text-muted-foreground transition-colors hover:border-gold/50 hover:text-gold focus-visible:outline-2 focus-visible:outline-gold"
+          >
+            {label}
+          </a>
+        ))}
+      </nav>
+
       {/* Hero */}
       <Section
+        id="content-hero"
         title="Hero — top of the page"
         description="Headline intro, buttons, flyer image, badge and trust points."
         saving={savingSection === "hero"}
@@ -316,13 +377,14 @@ export function AdminContent({ token }: { token: string }) {
             id="hero-trust"
             className={areaCls}
             value={h.trust.join("\n")}
-            onChange={(e) => patch("hero", { trust: e.target.value.split("\n").map((t) => t.trim()).filter(Boolean) })}
+            onChange={(e) => patch("hero", { trust: splitLinesForEditing(e.target.value) })}
           />
         </Field>
       </Section>
 
       {/* Marquee */}
       <Section
+        id="content-marquee"
         title="Gold marquee strip"
         description="The scrolling phrases under the hero (year, dates and tagline are always included first)."
         saving={savingSection === "marquee"}
@@ -334,13 +396,14 @@ export function AdminContent({ token }: { token: string }) {
             id="marquee-items"
             className={areaCls}
             value={content.marquee.extras.join("\n")}
-            onChange={(e) => patch("marquee", { extras: e.target.value.split("\n").map((t) => t.trim()).filter(Boolean) })}
+            onChange={(e) => patch("marquee", { extras: splitLinesForEditing(e.target.value) })}
           />
         </Field>
       </Section>
 
       {/* Shop heading */}
       <Section
+        id="content-shop"
         title="Shop section heading"
         description="The title block above the product grid and filters."
         saving={savingSection === "shop"}
@@ -360,6 +423,7 @@ export function AdminContent({ token }: { token: string }) {
 
       {/* How to Order */}
       <Section
+        id="content-how"
         title="How to Order"
         description="Section heading and the three step cards."
         saving={savingSection === "how"}
@@ -432,6 +496,7 @@ export function AdminContent({ token }: { token: string }) {
 
       {/* Payment */}
       <Section
+        id="content-payment"
         title="Payment section"
         description="Heading, feature cards, the numbered checkout steps and accepted methods."
         saving={savingSection === "payment"}
@@ -497,15 +562,18 @@ export function AdminContent({ token }: { token: string }) {
             id="pay-steps"
             className={areaCls}
             value={p.steps.join("\n")}
-            onChange={(e) => patch("payment", { steps: e.target.value.split("\n").map((t) => t.trim()).filter(Boolean) })}
+            onChange={(e) => patch("payment", { steps: splitLinesForEditing(e.target.value) })}
           />
         </Field>
         <Field id="pay-methods" label="Accepted methods (chips)" hint="Comma separated, e.g. MTN MoMo, Telecel Cash, Visa.">
           <Input
             id="pay-methods"
             className={inputCls}
-            value={p.methods.join(", ")}
-            onChange={(e) => patch("payment", { methods: e.target.value.split(",").map((t) => t.trim()).filter(Boolean) })}
+            value={paymentMethodsDraft ?? p.methods.join(", ")}
+            onChange={(e) => {
+              setPaymentMethodsDraft(e.target.value);
+              patch("payment", { methods: splitCommasForEditing(e.target.value) });
+            }}
           />
         </Field>
         <Field id="pay-btn" label="Button label">
@@ -515,6 +583,7 @@ export function AdminContent({ token }: { token: string }) {
 
       {/* FAQ */}
       <Section
+        id="content-faq"
         title="FAQ"
         description="The question list customers expand. Add or remove freely."
         saving={savingSection === "faq"}
@@ -573,6 +642,7 @@ export function AdminContent({ token }: { token: string }) {
 
       {/* CTA band */}
       <Section
+        id="content-cta"
         title="Call-to-action band"
         description="The gold panel above the footer."
         saving={savingSection === "cta"}
@@ -597,6 +667,7 @@ export function AdminContent({ token }: { token: string }) {
 
       {/* Footer */}
       <Section
+        id="content-footer"
         title="Footer"
         description="About text, location line and copyright."
         saving={savingSection === "footer"}
@@ -616,6 +687,7 @@ export function AdminContent({ token }: { token: string }) {
 
       {/* Lookbook */}
       <Section
+        id="content-lookbook"
         title="Lookbook carousel"
         description="The styled outfit shots. Images, titles and descriptions are editable —
         the gold + pins stay linked to the product types shown in each photo."

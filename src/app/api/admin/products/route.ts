@@ -58,7 +58,10 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
   try {
-    const rows = await db.product.findMany({ orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }] });
+    const rows = await db.product.findMany({
+      where: { id: { not: "shiloh-payment-qa-internal" } },
+      orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
+    });
     const products: AdminProductDTO[] = rows.map((row) => ({
       ...toProductDTO(row),
       sortOrder: row.sortOrder,

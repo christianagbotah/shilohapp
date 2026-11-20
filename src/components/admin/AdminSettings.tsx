@@ -24,8 +24,10 @@ import { useUi } from "@/store/ui";
 import { fetchJson } from "@/hooks/use-store-data";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
+import { AdminLivePaymentTest } from "@/components/admin/AdminLivePaymentTest";
 
 type SettingsResponse = {
+  paymentTestEnabled: boolean;
   announcement: string;
   shilohYear: string;
   shilohTagline: string;
@@ -62,6 +64,7 @@ type SettingsResponse = {
 };
 
 function CardShell({
+  id,
   icon: Icon,
   title,
   subtitle,
@@ -69,6 +72,7 @@ function CardShell({
   gold,
   status,
 }: {
+  id: string;
   icon: React.ElementType;
   title: string;
   subtitle: string;
@@ -78,8 +82,9 @@ function CardShell({
 }) {
   return (
     <section
+      id={id}
       className={cn(
-        "rounded-3xl p-6",
+        "scroll-mt-36 rounded-3xl p-6",
         gold ? "gold-panel" : "border border-border bg-card"
       )}
     >
@@ -140,6 +145,7 @@ const inputCls = "h-12 rounded-xl border-border bg-background/60 text-base";
 
 export function AdminSettings({ token }: { token: string }) {
   const queryClient = useQueryClient();
+  const setAdminToken = useUi((state) => state.setAdminToken);
   const { toast } = useToast();
 
   const [loading, setLoading] = useState(true);
@@ -163,6 +169,7 @@ export function AdminSettings({ token }: { token: string }) {
   const [siteUrl, setSiteUrl] = useState("");
   const [hubtelActive, setHubtelActive] = useState(false);
   const [testingHubtel, setTestingHubtel] = useState(false);
+  const [paymentTestEnabled, setPaymentTestEnabled] = useState(false);
 
   // SMS
   const [smsClientId, setSmsClientId] = useState("");
@@ -204,6 +211,7 @@ export function AdminSettings({ token }: { token: string }) {
         setHubtelMerchant(res.hubtel.merchantName);
         setSiteUrl(res.hubtel.siteUrl);
         setHubtelActive(res.hubtel.active);
+        setPaymentTestEnabled(res.paymentTestEnabled);
         setSmsClientId(res.sms.clientId);
         setSmsSecretSet(res.sms.secretSet);
         setSmsSender(res.sms.sender);
@@ -243,6 +251,11 @@ export function AdminSettings({ token }: { token: string }) {
         body: JSON.stringify(body),
       });
       await queryClient.invalidateQueries({ queryKey: ["store-info"] });
+      if (key === "password") {
+        toast({ title: "Password updated", description: "All sessions were revoked. Sign in again." });
+        setAdminToken(null);
+        return;
+      }
       // Refresh so the "configured" pills update immediately.
       const res = await fetchJson<SettingsResponse>("/api/admin/settings", {
         headers: { "x-admin-token": token },
@@ -278,12 +291,16 @@ export function AdminSettings({ token }: { token: string }) {
         message?: string;
         error?: string;
         hint?: string;
+        inconclusive?: boolean;
       };
       if (res.ok && data.success) {
-        toast({ title: "Hubtel connected", description: data.message });
+        toast({
+          title: "Hubtel checkout accepted",
+          description: data.message || "Hubtel returned a valid hosted checkout link. Complete a real payment and verify its status before launch.",
+        });
       } else {
         toast({
-          title: "Hubtel test failed",
+          title: data.inconclusive ? "Hubtel test inconclusive" : "Hubtel checkout rejected",
           description: [data.error, data.hint].filter(Boolean).join(" "),
           variant: "destructive",
         });
@@ -309,13 +326,36 @@ export function AdminSettings({ token }: { token: string }) {
 
   return (
     <div className="grid gap-5 lg:grid-cols-2">
+      <nav
+        aria-label="Jump to settings"
+        className="sticky top-16 z-20 -mx-1 flex gap-2 overflow-x-auto rounded-xl border border-border bg-card/95 px-3 py-3 shadow-sm backdrop-blur-md lg:col-span-2"
+      >
+        {([
+          ["payments", "Payments"],
+          ["live-test", "Live payment test"],
+          ["sms", "SMS"],
+          ["email", "Email"],
+          ["branding", "Event branding"],
+          ["storefront", "Storefront"],
+          ["password", "Security"],
+        ] as const).map(([key, label]) => (
+          <a
+            key={key}
+            href={"#setting-" + key}
+            className="shrink-0 rounded-lg border border-border bg-background px-3 py-2 text-xs font-semibold text-muted-foreground transition-colors hover:border-gold/50 hover:text-gold focus-visible:outline-2 focus-visible:outline-gold"
+          >
+            {label}
+          </a>
+        ))}
+      </nav>
       {/* ---------------- Hubtel payment ---------------- */}
       <CardShell
+        id="setting-payments"
         icon={ShieldCheck}
         title="Hubtel Online Payment"
         subtitle="Activate one-tap checkout — Hubtel collects MoMo, wallets & cards"
         gold
-        status={{ label: hubtelActive ? "Active" : "Not configured", ok: hubtelActive }}
+        status={{ label: hubtelActive ? "Configured" : "Not configured", ok: hubtelActive }}
       >
         <div className="grid gap-4 sm:grid-cols-2">
           <Field
@@ -373,7 +413,7 @@ export function AdminSettings({ token }: { token: string }) {
               id="hubtel-merchant"
               value={hubtelMerchant}
               onChange={(e) => setHubtelMerchant(e.target.value)}
-              placeholder="Shiloh Merch GH"
+              placeholder="Shiloh 2026"
               className={inputCls}
               maxLength={60}
             />
@@ -382,13 +422,13 @@ export function AdminSettings({ token }: { token: string }) {
         <Field
           id="site-url"
           label="Public site URL"
-          hint="Used for Hubtel payment callbacks. Must be reachable from the internet."
+          hint="Your storefront address: https://shiloh.lightworldtech.com (not /backoffice). Used for payment callbacks and customer return URLs. Click Save before testing."
         >
           <Input
             id="site-url"
             value={siteUrl}
             onChange={(e) => setSiteUrl(e.target.value)}
-            placeholder="https://shilohmerch.com"
+            placeholder="https://shiloh.lightworldtech.com"
             className={`${inputCls} text-sm`}
             maxLength={200}
           />
@@ -437,8 +477,24 @@ export function AdminSettings({ token }: { token: string }) {
         </p>
       </CardShell>
 
+      {/* Only authorized administrators can initiate real-money QA payments. */}
+      <CardShell
+        id="setting-live-test"
+        icon={Wallet}
+        title="Live payment & SMS verification"
+        subtitle="Small real-money test with automatic payment and message audit"
+      >
+        <AdminLivePaymentTest
+          token={token}
+          adminPhone={adminPhone}
+          configured={hubtelActive && hubtelSecretSet}
+          enabled={paymentTestEnabled}
+        />
+      </CardShell>
+
       {/* ---------------- SMS alerts ---------------- */}
       <CardShell
+        id="setting-sms"
         icon={MessageSquare}
         title="SMS Alerts (Hubtel)"
         subtitle="Order & payment confirmations to the customer and your phone"
@@ -477,7 +533,7 @@ export function AdminSettings({ token }: { token: string }) {
             id="sms-sender"
             value={smsSender}
             onChange={(e) => setSmsSender(e.target.value)}
-            placeholder="Shiloh Merch"
+            placeholder="SHILOH"
             className={inputCls}
             maxLength={20}
           />
@@ -499,7 +555,7 @@ export function AdminSettings({ token }: { token: string }) {
               type="email"
               value={adminEmail}
               onChange={(e) => setAdminEmail(e.target.value)}
-              placeholder="orders@shilohmerch.com"
+              placeholder="orders@example.com"
               className={`${inputCls} text-sm`}
               maxLength={120}
             />
@@ -570,6 +626,7 @@ export function AdminSettings({ token }: { token: string }) {
 
       {/* ---------------- Email alerts ---------------- */}
       <CardShell
+        id="setting-email"
         icon={Mail}
         title="Email Alerts (SMTP)"
         subtitle="Every new order & payment lands in your inbox"
@@ -604,7 +661,7 @@ export function AdminSettings({ token }: { token: string }) {
               id="smtp-user"
               value={smtpUser}
               onChange={(e) => setSmtpUser(e.target.value)}
-              placeholder="orders@shilohmerch.com"
+              placeholder="orders@example.com"
               className={`${inputCls} text-sm`}
               maxLength={120}
               autoComplete="off"
@@ -630,7 +687,7 @@ export function AdminSettings({ token }: { token: string }) {
               type="email"
               value={smtpFrom}
               onChange={(e) => setSmtpFrom(e.target.value)}
-              placeholder="shiloh.merch@gmail.com"
+              placeholder="shiloh@example.com"
               className={`${inputCls} text-sm`}
               maxLength={120}
             />
@@ -641,7 +698,7 @@ export function AdminSettings({ token }: { token: string }) {
               type="email"
               value={smtpTo}
               onChange={(e) => setSmtpTo(e.target.value)}
-              placeholder="orders@shilohmerch.com"
+              placeholder="orders@example.com"
               className={`${inputCls} text-sm`}
               maxLength={120}
             />
@@ -697,6 +754,7 @@ export function AdminSettings({ token }: { token: string }) {
 
       {/* ---------------- Branding ---------------- */}
       <CardShell
+        id="setting-branding"
         icon={Sparkles}
         title="Shiloh Branding"
         subtitle="Drives the headline, dates and countdown — update every year"
@@ -774,6 +832,7 @@ export function AdminSettings({ token }: { token: string }) {
 
       {/* ---------------- Storefront ---------------- */}
       <CardShell
+        id="setting-storefront"
         icon={Wallet}
         title="Storefront"
         subtitle="Customer-facing store settings"
@@ -809,6 +868,7 @@ export function AdminSettings({ token }: { token: string }) {
 
       {/* ---------------- Password ---------------- */}
       <CardShell
+        id="setting-password"
         icon={KeyRound}
         title="Back office password"
         subtitle="Changing it signs out every other device"
@@ -819,7 +879,7 @@ export function AdminSettings({ token }: { token: string }) {
             type="password"
             value={newPassword}
             onChange={(e) => setNewPassword(e.target.value)}
-            placeholder="At least 6 characters"
+            placeholder="At least 12 characters"
             className={inputCls}
             autoComplete="new-password"
           />
@@ -837,8 +897,8 @@ export function AdminSettings({ token }: { token: string }) {
         </Field>
         <Button
           onClick={async () => {
-            if (newPassword.length < 6) {
-              toast({ title: "Password too short", description: "Use at least 6 characters.", variant: "destructive" });
+            if (newPassword.length < 12) {
+              toast({ title: "Password too short", description: "Use at least 12 characters.", variant: "destructive" });
               return;
             }
             if (newPassword !== confirmPassword) {

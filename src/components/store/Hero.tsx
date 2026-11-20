@@ -73,7 +73,7 @@ function Countdown({ startIso, year, dates }: { startIso: string; year: string; 
     );
   }
   return (
-    <div className="flex items-end gap-2 sm:gap-3" role="timer" aria-label={`Countdown to Shiloh ${year}`}>
+    <div className="flex flex-wrap items-end gap-2 sm:gap-3" role="timer" aria-label={`Countdown to Shiloh ${year}`}>
       <span className="pb-2 pr-1 text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground sm:text-sm">
         {startLabel} in
       </span>
@@ -208,6 +208,7 @@ export function Hero() {
           >
             <Image
               src={c.flyerImage}
+              unoptimized={c.flyerImage.startsWith("/products/")}
               alt={`Official Shiloh ${year} — ${tagline} flyer, Winners Chapel International`}
               fill
               sizes="(max-width: 1024px) 100vw, 560px"
@@ -250,6 +251,7 @@ export function Hero() {
           <div className="relative mx-auto aspect-video w-full max-w-2xl overflow-hidden rounded-2xl bg-secondary/40">
             <Image
               src={c.flyerImage}
+              unoptimized={c.flyerImage.startsWith("/products/")}
               alt={`Official Shiloh ${year} — ${tagline} flyer, Winners Chapel International`}
               fill
               sizes="(max-width: 768px) 90vw, 640px"

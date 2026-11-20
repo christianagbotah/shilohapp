@@ -105,7 +105,7 @@ export function AdminAlerts({ token }: { token: string }) {
       <div className="grid gap-3 sm:grid-cols-3">
         <div className="rounded-2xl border border-border bg-card p-4">
           <p className="text-[0.68rem] font-semibold uppercase tracking-widest text-muted-foreground">
-            Delivered (recent)
+            Accepted by provider (recent)
           </p>
           <p className="mt-1.5 font-display text-2xl font-bold text-emerald-400">{sent}</p>
         </div>
@@ -234,7 +234,7 @@ export function AdminAlerts({ token }: { token: string }) {
 
       <p className="flex items-center gap-2 text-xs text-muted-foreground">
         <Send className="h-3.5 w-3.5 shrink-0" aria-hidden />
-        Configure the Hubtel SMS and email alert credentials under Settings to activate delivery.
+        SMS "sent" means Hubtel accepted a message for delivery; handset receipt is confirmed separately. Configure message settings under Settings.
       </p>
     </div>
   );

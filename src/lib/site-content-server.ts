@@ -19,10 +19,12 @@ export async function loadSiteContent(): Promise<SiteContent> {
   const map = new Map(rows.map((r) => [r.key, r.value]));
   const out = {} as SiteContent;
   for (const section of Object.keys(CONTENT_KEYS) as Array<keyof SiteContent>) {
-    out[section] = mergeSection(
-      DEFAULT_SITE_CONTENT[section],
-      parseSection(map.get(CONTENT_KEYS[section]))
-    );
+    Object.assign(out, {
+      [section]: mergeSection(
+        DEFAULT_SITE_CONTENT[section],
+        parseSection(map.get(CONTENT_KEYS[section]))
+      ),
+    });
   }
   return out;
 }

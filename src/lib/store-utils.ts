@@ -1,5 +1,6 @@
 import type { GalleryImage, ProductDTO } from "@/lib/types";
 import { db } from "@/lib/db";
+import { decryptSettingSecret, isSecretSetting } from "@/lib/secret-settings";
 
 // Server-only helpers. Pure client-safe helpers live in @/lib/format.
 
@@ -67,5 +68,6 @@ export function toProductDTO(row: {
 /** Fetch a public store setting value (or null) */
 export async function getSetting(key: string): Promise<string | null> {
   const row = await db.setting.findUnique({ where: { key } });
-  return row?.value ?? null;
+  if (!row) return null;
+  return isSecretSetting(key) ? decryptSettingSecret(row.value) : row.value;
 }

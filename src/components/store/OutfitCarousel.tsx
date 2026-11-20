@@ -204,6 +204,7 @@ export function OutfitCarousel() {
             >
               <Image
                 src={slide.image}
+                unoptimized={slide.image.startsWith("/products/")}
                 alt={`${slide.title} — Shiloh lookbook`}
                 fill
                 priority={index === 0}

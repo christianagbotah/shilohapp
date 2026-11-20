@@ -12,7 +12,6 @@ import { STORE_INFO_DEFAULTS } from "@/lib/types";
 
 export function AdminGate() {
   const setAdminToken = useUi((s) => s.setAdminToken);
-  const setView = useUi((s) => s.setView);
   const { data: info } = useStoreInfo();
   const year = info?.shilohYear ?? STORE_INFO_DEFAULTS.shilohYear;
   const tagline = info?.shilohTagline ?? STORE_INFO_DEFAULTS.shilohTagline;
@@ -29,12 +28,12 @@ export function AdminGate() {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetchJson<{ token: string }>("/api/admin/login", {
+      await fetchJson<{ ok: boolean }>("/api/admin/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ password }),
       });
-      setAdminToken(res.token);
+      setAdminToken("session");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Login failed");
     } finally {
@@ -95,7 +94,7 @@ export function AdminGate() {
           type="button"
           variant="ghost"
           className="mt-2 h-11 w-full rounded-full text-muted-foreground"
-          onClick={() => setView("store")}
+          onClick={() => window.location.assign("/")}
         >
           <ArrowLeft className="mr-2 h-4 w-4" aria-hidden />
           Back to store

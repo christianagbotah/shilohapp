@@ -1,5 +1,6 @@
 generator client {
   provider = "prisma-client-js"
+  binaryTargets = ["native", "rhel-openssl-3.0.x", "debian-openssl-3.0.x"]
 }
 
 datasource db {
@@ -26,6 +27,7 @@ model Product {
   active    Boolean     @default(true)
   createdAt DateTime    @default(now())
   items     OrderItem[]
+  inventoryVariants InventoryVariant[]
 }
 
 model Order {
@@ -46,6 +48,9 @@ model Order {
   updatedAt     DateTime    @updatedAt
   items         OrderItem[]
   notifications NotificationLog[]
+  paymentAttempts PaymentAttempt[]
+  paymentAudits   PaymentAudit[]
+  inventoryHolds InventoryHold[]
 }
 
 model OrderItem {
@@ -62,6 +67,7 @@ model OrderItem {
   capStyle    String?
   unitPrice   Float
   quantity    Int
+  inventoryHold InventoryHold?
 }
 
 // Simple key/value store: momo_number, momo_name, admin_password, announcement,
@@ -87,4 +93,99 @@ model NotificationLog {
   orderId   String?
   order     Order?   @relation(fields: [orderId], references: [id], onDelete: SetNull)
   createdAt DateTime @default(now())
+}
+
+// A separate reference is created for each Hubtel checkout attempt.
+// Never recycle a reference after a failed or ambiguous charge.
+model PaymentAttempt {
+  id                 String   @id @default(cuid())
+  orderId            String
+  order              Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  reference          String   @unique
+  merchantNumber     String
+  expectedPesewas    Int
+  status             String   @default("initiating") // initiating | open | unknown | paid | failed | cancelled
+  checkoutUrl        String?
+  hubtelTransactionId String?
+  verifiedAmount     Float?
+  lastCheckedAt      DateTime?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+  @@index([orderId, createdAt])
+  @@index([status, createdAt])
+}
+
+// Store only hashes of randomly generated browser session tokens.
+model AdminSession {
+  id         String   @id @default(cuid())
+  tokenHash  String   @unique
+  createdAt  DateTime @default(now())
+  expiresAt  DateTime
+  @@index([expiresAt])
+}
+
+// Immutable payment-related audit entries for reconciliation and manual review.
+model PaymentAudit {
+  id          String   @id @default(cuid())
+  orderId     String
+  order       Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  event       String
+  reference   String?
+  detail      String?
+  createdAt   DateTime @default(now())
+  @@index([orderId, createdAt])
+}
+
+
+// Variant inventory is opt-in. Its SQLite triggers are installed by
+// ops/inventory/migrate.py and MUST be preserved by database migrations.
+// A managed variant with enabled=0 is unavailable; an unmanaged one has
+// no stock limit until its opening inventory is entered.
+model InventoryVariant {
+  id           Int     @id @default(autoincrement())
+  productId    String
+  product      Product @relation(fields: [productId], references: [id])
+  color        String
+  size         String
+  capStyle     String  @default("")
+  onHand       Int     @default(0)
+  reserved     Int     @default(0)
+  lowStockAt   Int     @default(3)
+  enabled      Int     @default(1)
+  createdAt    BigInt  @default(0)
+  updatedAt    BigInt  @default(0)
+  holds        InventoryHold[]
+  events       InventoryEvent[]
+
+  @@unique([productId, color, size, capStyle])
+  @@index([productId])
+}
+
+model InventoryHold {
+  orderItemId String @id
+  orderItem   OrderItem @relation(fields: [orderItemId], references: [id], onDelete: Cascade)
+  orderId     String
+  order       Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  variantId   Int
+  variant     InventoryVariant @relation(fields: [variantId], references: [id])
+  quantity    Int
+  state       String @default("held")
+  createdAt   BigInt @default(0)
+  changedAt   BigInt @default(0)
+
+  @@index([orderId, state])
+}
+
+model InventoryEvent {
+  id        Int @id @default(autoincrement())
+  variantId Int
+  variant   InventoryVariant @relation(fields: [variantId], references: [id])
+  orderId   String?
+  event     String
+  quantity  Int
+  actor     String
+  detail    String?
+  createdAt BigInt @default(0)
+
+  @@index([createdAt])
 }

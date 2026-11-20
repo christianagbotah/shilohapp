@@ -39,12 +39,22 @@ function ProductCard({ product, index }: { product: ProductDTO; index: number })
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true, margin: "-40px" }}
       transition={{ duration: 0.45, delay: Math.min(index * 0.05, 0.3), ease: "easeOut" }}
-      className="card-hover group cursor-pointer overflow-hidden rounded-2xl border border-border bg-card"
+      className="card-hover group cursor-pointer overflow-hidden rounded-2xl border border-border bg-card focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold"
       onClick={() => openProduct(product)}
+      role="button"
+      tabIndex={0}
+      aria-label={`View ${product.name}, ${formatGhs(product.price)}`}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          openProduct(product);
+        }
+      }}
     >
       <div className="relative aspect-square overflow-hidden bg-secondary">
         <Image
           src={product.image}
+          unoptimized={product.image.startsWith("/products/")}
           alt={`${product.name} — ${PRODUCT_TYPE_LABELS[product.type]} for ${product.ageGroup === "kid" ? "kids" : "adults"}`}
           fill
           sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"

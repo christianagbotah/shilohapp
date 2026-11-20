@@ -39,7 +39,7 @@ function Options({ product }: { product: ProductDTO }) {
       return;
     }
     if (product.type === "cap" && product.capStyles && !capStyle) {
-      toast({ title: "Choose a cap style", description: "Soft or hard?" });
+      toast({ title: "Choose a cap style", description: "Hard cap or net cap?" });
       return;
     }
     addItem(
@@ -131,7 +131,7 @@ function Options({ product }: { product: ProductDTO }) {
                 >
                   {s}
                   <span className="mt-0.5 hidden text-[0.68rem] font-normal text-muted-foreground sm:block">
-                    {s === "Soft" ? "Relaxed, unstructured crown" : "Structured, crisp crown"}
+                    {s === "Net" ? "Breathable mesh/net cap" : "Structured hard cap"}
                   </span>
                 </button>
               ))}

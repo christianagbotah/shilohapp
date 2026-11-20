@@ -2,7 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { after } from "next/server";
 import { z } from "zod";
 import { db } from "@/lib/db";
-import { generateOrderCode, normalizeGhPhone } from "@/lib/format";
+import { normalizeGhPhone } from "@/lib/format";
+import { randomInt } from "node:crypto";
+const ORDER_ALPHABET = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
+function generateOrderCode() { return "SHL-" + Array.from({length: 6}, () => ORDER_ALPHABET[randomInt(ORDER_ALPHABET.length)]).join(""); }
 import { notifyOrderPlaced } from "@/lib/notify";
 import { toNotifyOrder } from "@/lib/payments";
 import { clientIp, rateLimit } from "@/lib/rate-limit";
@@ -190,6 +193,14 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ order: dto }, { status: 201 });
   } catch (err) {
     console.error("POST /api/orders failed:", err);
+    // SQLite stock triggers surface through Prisma as a P2003 constraint error.
+    // A previously validated product may now be unavailable due to another order.
+    if (err instanceof Error && "code" in err && (err as Error & { code: string }).code === "P2003") {
+      return NextResponse.json(
+        { error: "One or more selected sizes, colours or styles are sold out. Please adjust your order and try again." },
+        { status: 409 }
+      );
+    }
     return NextResponse.json({ error: "Could not place your order. Please try again." }, { status: 500 });
   }
 }
