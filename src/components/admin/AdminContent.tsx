@@ -149,7 +149,7 @@ function ImageField({
     <Field id={id} label={label} hint="JPG, PNG or WebP up to 4 MB.">
       <div className="flex flex-wrap items-center gap-3">
         <div className={cn("relative w-28 shrink-0 overflow-hidden rounded-lg border border-border bg-secondary", aspect)}>
-          <Image src={value || "/images/shiloh-flyer.jpg"} alt="" fill sizes="112px" className="object-cover" />
+          <Image src={value || "/images/shiloh-flyer.jpg"} alt="" fill sizes="112px" unoptimized={value.startsWith("/products/")} className="object-cover" />
         </div>
         <input
           ref={fileRef}
