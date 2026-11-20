@@ -20,6 +20,8 @@ function mockStatus(
   reference = REF,
   amount = 80,
   status = "Paid",
+  charges: number | null = null,
+  amountAfterCharges: number | null = null,
 ) {
   globalThis.fetch = (async (input: RequestInfo | URL) => {
     const url = String(input);
@@ -32,6 +34,8 @@ function mockStatus(
         clientReference: reference,
         amount,
         status,
+        ...(charges !== null ? { charges } : {}),
+        ...(amountAfterCharges !== null ? { amountAfterCharges } : {}),
         transactionId: "mock-hubtel-tx-123",
       },
     }), { status: 200, headers: { "Content-Type": "application/json" } });
@@ -169,6 +173,25 @@ describe("Hubtel money-state integrity", () => {
     expect(body.alreadyPaid).toBe(true);
     expect((await db.order.findUniqueOrThrow({ where: { code: CODE } })).paymentStatus).toBe("paid");
     expect(await db.paymentAttempt.count({ where: { orderId: initial.id, status: "paid" } })).toBe(1);
+  });
+
+  test("Hubtel fee on top of the order confirms exactly reconciled merchant net", async () => {
+    const order = await newOrder();
+    mockStatus(REF, 80.80, "Paid", 0.80, 80);
+    const result = await finalizePaymentFromHubtel(order);
+    expect(result.paymentStatus).toBe("paid");
+    expect((await db.order.findUniqueOrThrow({ where: { id: order.id } })).paymentStatus).toBe("paid");
+    const attempt = await db.paymentAttempt.findUniqueOrThrow({ where: { reference: REF } });
+    expect(attempt.verifiedAmount).toBeCloseTo(80.80);
+  });
+
+  test("mismatched fee arithmetic is never sufficient to settle a paid claim", async () => {
+    const order = await newOrder();
+    mockStatus(REF, 80.80, "Paid", 0.70, 80);
+    const result = await finalizePaymentFromHubtel(order);
+    expect(result.paymentStatus).toBe("verifying");
+    expect((await db.order.findUniqueOrThrow({ where: { id: order.id } })).paymentStatus).not.toBe("paid");
+    expect(await db.paymentAudit.count({ where: { orderId: order.id, event: "payment_evidence_mismatch" } })).toBe(1);
   });
 
   test("underpayment reported by Hubtel never marks order paid", async () => {
