@@ -193,7 +193,7 @@ function emailShell(title: string, accent: string, body: string): string {
     </div>
     <div style="padding:28px;">${body}</div>
     <div style="padding:18px 28px;background:#faf9f7;border-top:1px solid #e7e5e4;font-size:12px;color:#78716c;">
-      Shiloh 2026 Merch • Back Office alert • This is an automated message.
+      Shiloh 2026 • Back Office alert • This is an automated message.
     </div>
   </div>
 </body></html>`;
@@ -256,7 +256,7 @@ export async function notifyOrderPlaced(order: NotifyOrder): Promise<void> {
         emailShell(
           order.isQaTest ? "LIVE PAYMENT QA" : "NEW ORDER",
           "#b8860b",
-          `<p style="font-size:14px;margin:0;">${order.isQaTest ? "An administrator started a REAL-money checkout test. No merchandise will be shipped." : "A new order has just been placed on the Shiloh merch store."}</p>
+          `<p style="font-size:14px;margin:0;">${order.isQaTest ? "An administrator started a REAL-money checkout test. No goods will be shipped." : "A new order has just been placed on the Shiloh order website."}</p>
            ${itemsTableHtml(order)}
            <p style="font-size:14px;"><strong>Order code:</strong> ${order.code} &nbsp;•&nbsp; <strong>Total:</strong> ${formatGhs(order.total)}</p>
            <p style="font-size:14px;"><strong>Customer:</strong> ${order.fullName}<br/>
@@ -323,7 +323,7 @@ export async function notifyPaymentConfirmed(order: NotifyOrder): Promise<void> 
           order.isQaTest ? "TEST PAYMENT VERIFIED" : "PAYMENT CONFIRMED",
           "#15803d",
           `<p style="font-size:14px;margin:0;">${order.isQaTest
-            ? "Hubtel verified this administrator REAL-MONEY test payment. No merchandise should be delivered."
+            ? "Hubtel verified this administrator REAL-MONEY test payment. No goods should be delivered."
             : "Hubtel payment for order <strong>" + order.code + "</strong> was verified."}</p>
            ${itemsTableHtml(order)}
            <p style="font-size:14px;"><strong>Amount:</strong> ${formatGhs(order.total)} &nbsp;•&nbsp; <strong>Customer:</strong> ${order.fullName} (${order.phone})</p>
@@ -418,7 +418,7 @@ export async function sendTestEmail(): Promise<"sent" | "failed" | "skipped"> {
       html: emailShell(
         "TEST EMAIL",
         "#b8860b",
-        `<p style="font-size:14px;">This is a test message from your Shiloh merch Back Office. Your email alerts are working!</p>`
+        `<p style="font-size:14px;">This is a test message from your Shiloh Back Office. Your email alerts are working!</p>`
       ),
     });
     await log({ channel: "email", recipient: config.to, purpose: "test", status: "sent", detail: `MessageId ${info.messageId}` });

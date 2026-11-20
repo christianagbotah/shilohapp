@@ -50,13 +50,13 @@ describe("Admin-only real-money test safeguards", () => {
     expect(res.status).toBe(401);
   });
 
-  test("QA messages plainly say no merchandise is supplied", () => {
+  test("QA messages plainly say no goods are supplied", () => {
     expect(smsOrderPlacedCustomer(sample)).toContain("PAYMENT TEST");
-    expect(smsOrderPlacedCustomer(sample)).toContain("No merchandise");
+    expect(smsOrderPlacedCustomer(sample)).toContain("No goods");
     expect(smsOrderPlacedAdmin(sample)).toContain("Do not fulfil");
     expect(smsPaymentConfirmedCustomer(sample)).toContain("REAL-money test");
     expect(smsPaymentConfirmedAdmin(sample)).toContain("No goods");
-    expect(smsPaymentConfirmedCustomer(sample)).toContain("₵1");
+    expect(smsPaymentConfirmedCustomer(sample)).toContain("GHS 1.00");
   });
 
   test("ordinary customer payment confirmation still describes delivery", () => {

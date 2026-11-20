@@ -22,7 +22,6 @@
  *   (used to diagnose insufficient / low balance on failures).
  */
 import { getSetting } from "@/lib/store-utils";
-import { formatGhs } from "@/lib/format";
 import {
   explainHubtelCheckoutFailure,
   isTrustedHubtelCheckoutUrl,
@@ -75,7 +74,7 @@ export async function getHubtelPaymentConfig(): Promise<HubtelPaymentConfig | nu
     clientId,
     clientSecret,
     merchantNumber: merchantNumber ?? "",
-    merchantName: merchantName || "Shiloh Merch GH",
+    merchantName: merchantName || "Shiloh 2026",
     siteUrl: (siteUrl || process.env.NEXT_PUBLIC_SITE_URL || "").replace(/\/+$/, ""),
   };
 }
@@ -87,7 +86,7 @@ export async function getHubtelSmsConfig(): Promise<HubtelSmsConfig | null> {
     getSetting("sms_sender"),
   ]);
   if (!clientId || !clientSecret) return null;
-  return { clientId, clientSecret, senderId: senderId || "Shiloh Merch" };
+  return { clientId, clientSecret, senderId: senderId || "SHILOH" };
 }
 
 function basicAuth(clientId: string, clientSecret: string): string {
@@ -152,7 +151,7 @@ export async function initiateCheckout(
   // --- Hubtel Online Checkout initiate payload (camelCase) ---
   const payload: Record<string, unknown> = {
     totalAmount: Number(order.total.toFixed(2)),
-    description: `Shiloh merch order ${order.code}`,
+    description: `Shiloh order ${order.code}`,
     callbackUrl: `${base}/api/payments/callback`,
     returnUrl: `${base}/?payment=return&code=${order.code}`,
     cancellationUrl: `${base}/?payment=cancelled&code=${order.code}`,
@@ -419,6 +418,24 @@ export async function getHubtelSmsBalance(): Promise<SmsBalance | null> {
 }
 
 /** Send one SMS through Hubtel. Throws nothing — always returns a result. */
+/** SMS networks sometimes replace the cedi symbol with ??. Send ASCII.
+ * This only changes SMS, not currency formatting on the website. */
+export function smsAsciiText(input: string): string {
+  return input
+    .replace(/GH₵|₵/g, "GHS ")
+    .replace(/[“”]/g, '"')
+    .replace(/[‘’]/g, "'")
+    .replace(/[–—−]/g, "-")
+    .replace(/[…]/g, "...")
+    .replace(/[•·]/g, "-")
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^\x20-\x7e\n\r]/g, "");
+}
+
+const smsAmount = (n: number) =>
+  "GHS " + n.toLocaleString("en-GH", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
 export async function sendHubtelSms(to: string, content: string): Promise<SmsResult> {
   const config = await getHubtelSmsConfig();
   if (!config) {
@@ -429,7 +446,7 @@ export async function sendHubtelSms(to: string, content: string): Promise<SmsRes
   const payload = {
     From: config.senderId,
     Recipients: [toInternationalGhPhone(to)],
-    Content: content,
+    Content: smsAsciiText(content),
   };
 
   try {
@@ -515,33 +532,33 @@ function itemsSummary(order: NotifyOrder): string {
 
 export function smsOrderPlacedCustomer(order: NotifyOrder): string {
   if (order.isQaTest) {
-    return "SHILOH PAYMENT TEST " + order.code + ": Live checkout for " + formatGhs(order.total) +
-      " prepared. Only pay if you approve it on Hubtel. No merchandise will be supplied.";
+    return "SHILOH PAYMENT TEST " + order.code + ": Live checkout for " + smsAmount(order.total) +
+      " prepared. Only pay if you approve it on Hubtel. No goods will be supplied.";
   }
   return (
-    `Shiloh 2026: Order ${order.code} received. Total ${formatGhs(order.total)}. ` +
+    `Shiloh 2026: Order ${order.code} received. Total ${smsAmount(order.total)}. ` +
     "Pay securely via the Hubtel checkout to confirm your order. Thank you!"
   );
 }
 
 export function smsOrderPlacedAdmin(order: NotifyOrder): string {
   if (order.isQaTest) {
-    return "SHILOH ADMIN QA " + order.code + ": Live payment test of " + formatGhs(order.total) +
-      " initiated. Do not fulfil or dispatch any merchandise.";
+    return "SHILOH ADMIN QA " + order.code + ": Live payment test of " + smsAmount(order.total) +
+      " initiated. Do not fulfil or dispatch any goods.";
   }
   return (
     `NEW ORDER ${order.code}: ${order.fullName} (${order.phone}) — ` +
-    `${order.itemCount} items, ${formatGhs(order.total)}. Check the back office.`
+    `${order.itemCount} items, ${smsAmount(order.total)}. Check the back office.`
   );
 }
 
 export function smsPaymentConfirmedCustomer(order: NotifyOrder): string {
   if (order.isQaTest) {
-    return "SHILOH PAYMENT TEST " + order.code + ": Hubtel verified receipt of " + formatGhs(order.total) +
-      ". This was a REAL-money test, not a merchandise order.";
+    return "SHILOH PAYMENT TEST " + order.code + ": Hubtel verified receipt of " + smsAmount(order.total) +
+      ". This was a REAL-money test, not a customer order.";
   }
   return (
-    `Payment confirmed! Shiloh 2026 order ${order.code} (${formatGhs(order.total)}) is confirmed. ` +
+    `Payment confirmed! Shiloh 2026 order ${order.code} (${smsAmount(order.total)}) is confirmed. ` +
     "We will contact you shortly for delivery. Thank you!"
   );
 }
@@ -549,10 +566,10 @@ export function smsPaymentConfirmedCustomer(order: NotifyOrder): string {
 export function smsPaymentConfirmedAdmin(order: NotifyOrder): string {
   if (order.isQaTest) {
     return "SHILOH ADMIN QA " + order.code + ": Hubtel confirmed REAL-money test payment of " +
-      formatGhs(order.total) + ". No goods to dispatch; reconcile separately.";
+      smsAmount(order.total) + ". No goods to dispatch; reconcile separately.";
   }
   return (
-    `PAYMENT CONFIRMED: ${order.code} — ${formatGhs(order.total)} by ${order.fullName} ` +
+    `PAYMENT CONFIRMED: ${order.code} — ${smsAmount(order.total)} by ${order.fullName} ` +
     `(${order.phone}). Items: ${itemsSummary(order)}. Proceed with fulfilment.`
   );
 }
@@ -573,12 +590,12 @@ export function smsStatusUpdateCustomer(
     case "fulfilled":
       return (
         `Shiloh 2026: Good news — order ${order.code} is fulfilled! ` +
-        "Your merch is ready. Thank you for shopping with us!"
+        "Your order is ready. Thank you!"
       );
     case "cancelled":
       return (
         `Shiloh 2026: Order ${order.code} has been cancelled. ` +
-        "If this is unexpected, please contact the merch team. Thank you!"
+        "If this is unexpected, please contact the Shiloh team. Thank you!"
       );
   }
 }

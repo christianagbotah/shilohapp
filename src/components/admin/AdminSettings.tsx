@@ -413,7 +413,7 @@ export function AdminSettings({ token }: { token: string }) {
               id="hubtel-merchant"
               value={hubtelMerchant}
               onChange={(e) => setHubtelMerchant(e.target.value)}
-              placeholder="Shiloh Merch GH"
+              placeholder="Shiloh 2026"
               className={inputCls}
               maxLength={60}
             />
@@ -533,7 +533,7 @@ export function AdminSettings({ token }: { token: string }) {
             id="sms-sender"
             value={smsSender}
             onChange={(e) => setSmsSender(e.target.value)}
-            placeholder="Shiloh Merch"
+            placeholder="SHILOH"
             className={inputCls}
             maxLength={20}
           />
@@ -555,7 +555,7 @@ export function AdminSettings({ token }: { token: string }) {
               type="email"
               value={adminEmail}
               onChange={(e) => setAdminEmail(e.target.value)}
-              placeholder="orders@shilohmerch.com"
+              placeholder="orders@example.com"
               className={`${inputCls} text-sm`}
               maxLength={120}
             />
@@ -661,7 +661,7 @@ export function AdminSettings({ token }: { token: string }) {
               id="smtp-user"
               value={smtpUser}
               onChange={(e) => setSmtpUser(e.target.value)}
-              placeholder="orders@shilohmerch.com"
+              placeholder="orders@example.com"
               className={`${inputCls} text-sm`}
               maxLength={120}
               autoComplete="off"
@@ -687,7 +687,7 @@ export function AdminSettings({ token }: { token: string }) {
               type="email"
               value={smtpFrom}
               onChange={(e) => setSmtpFrom(e.target.value)}
-              placeholder="shiloh.merch@gmail.com"
+              placeholder="shiloh@example.com"
               className={`${inputCls} text-sm`}
               maxLength={120}
             />
@@ -698,7 +698,7 @@ export function AdminSettings({ token }: { token: string }) {
               type="email"
               value={smtpTo}
               onChange={(e) => setSmtpTo(e.target.value)}
-              placeholder="orders@shilohmerch.com"
+              placeholder="orders@example.com"
               className={`${inputCls} text-sm`}
               maxLength={120}
             />

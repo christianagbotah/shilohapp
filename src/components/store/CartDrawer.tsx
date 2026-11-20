@@ -44,7 +44,7 @@ export function CartDrawer() {
               </span>
             ) : null}
           </SheetTitle>
-          <SheetDescription className="sr-only">Review your merch before checkout</SheetDescription>
+          <SheetDescription className="sr-only">Review your items before checkout</SheetDescription>
         </SheetHeader>
 
         {!mounted || items.length === 0 ? (
@@ -55,7 +55,7 @@ export function CartDrawer() {
             <div>
               <p className="font-display text-lg font-bold">Your cart is empty</p>
               <p className="mt-1 text-sm text-muted-foreground">
-                Add some Shiloh merch to get started.
+                Add some Shiloh items to get started.
               </p>
             </div>
             <Button asChild className="rounded-full bg-gradient-to-r from-gold to-gold-deep font-bold text-primary-foreground hover:opacity-95">

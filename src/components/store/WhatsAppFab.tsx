@@ -14,7 +14,7 @@ export function WhatsAppFab() {
   if (!phone) return null;
 
   const href = `https://wa.me/${phone}?text=${encodeURIComponent(
-    "Hello Shiloh team! I have a question about the merch store."
+    "Hello Shiloh team! I have a question about the Shiloh order website."
   )}`;
 
   return (

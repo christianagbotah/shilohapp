@@ -54,6 +54,7 @@ function ProductCard({ product, index }: { product: ProductDTO; index: number })
       <div className="relative aspect-square overflow-hidden bg-secondary">
         <Image
           src={product.image}
+          unoptimized={product.image.startsWith("/products/")}
           alt={`${product.name} — ${PRODUCT_TYPE_LABELS[product.type]} for ${product.ageGroup === "kid" ? "kids" : "adults"}`}
           fill
           sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
