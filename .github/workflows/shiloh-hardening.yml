@@ -1,0 +1,43 @@
+name: Shiloh production hardening checks
+
+on:
+  push:
+    branches:
+      - "hardening/**"
+      - "fix/shiloh-production-hardening-ux"
+  pull_request:
+    branches:
+      - main
+      - "fix/shiloh-production-hardening-ux"
+
+permissions:
+  contents: read
+
+jobs:
+  payments-and-stock:
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    env:
+      DATABASE_URL: "file:./local-test.db"
+      NODE_ENV: test
+      SHILOH_PAYMENTS_ENABLED: "false"
+      NEXT_PUBLIC_SITE_URL: "https://shiloh.lightworldtech.com"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: "1.4.2"
+      - name: Install locked dependencies
+        run: bun install --frozen-lockfile
+      - name: Generate Prisma client
+        run: bunx prisma generate --schema prisma/schema.prisma
+      - name: Create disposable local test database
+        run: bunx prisma db push --schema prisma/schema.prisma
+      - name: Verify payment state, checkout parsing, and real-money QA safeguards
+        run: bun test tests/payment-state.test.ts tests/hubtel-checkout-response.test.ts tests/live-payment-qa.test.ts
+      - name: Type-check application
+        run: bun run typecheck
+      - name: Validate inventory source syntax
+        run: |
+          node --check ops/inventory/server.mjs
+          python3 -m py_compile ops/inventory/migrate.py ops/inventory/test_inventory.py ops/inventory/test_server.py ops/inventory/test_storefront.py ops/backup/restore_drill.py
