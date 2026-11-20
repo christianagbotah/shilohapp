@@ -3,6 +3,7 @@
 import { useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
+  ImageIcon,
   Loader2,
   Package,
   Pencil,
@@ -40,6 +41,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { fetchJson } from "@/hooks/use-store-data";
+import { MediaLibraryPicker } from "@/components/admin/MediaLibraryPicker";
 import { useToast } from "@/hooks/use-toast";
 import { formatGhs } from "@/lib/format";
 import {
@@ -309,6 +311,23 @@ export function AdminProducts({ token }: { token: string }) {
     { kind: "main" } | { kind: "gallery"; index: number } | null
   >(null);
   const [uploading, setUploading] = useState(false);
+  const [mediaTarget, setMediaTarget] = useState<
+    { kind: "main" } | { kind: "gallery"; index: number } | null
+  >(null);
+
+  const chooseMedia = (path: string) => {
+    if (mediaTarget?.kind === "main") {
+      set("image", path);
+    } else if (mediaTarget?.kind === "gallery") {
+      setForm((current) => ({
+        ...current,
+        gallery: current.gallery.map((image, index) =>
+          index === mediaTarget.index ? { ...image, src: path } : image
+        ),
+      }));
+    }
+    setMediaTarget(null);
+  };
 
   const startUpload = (target: { kind: "main" } | { kind: "gallery"; index: number }) => {
     setUploadTarget(target);
@@ -461,6 +480,14 @@ export function AdminProducts({ token }: { token: string }) {
         tabIndex={-1}
       />
 
+      <MediaLibraryPicker
+        open={mediaTarget !== null}
+        onOpenChange={(open) => { if (!open) setMediaTarget(null); }}
+        onSelect={chooseMedia}
+        token={token}
+        title={mediaTarget?.kind === "gallery" ? "Choose a gallery image" : "Choose a product image"}
+      />
+
       {/* Add / Edit dialog */}
       <Dialog open={formOpen} onOpenChange={(open) => !open && setFormOpen(false)}>
         <DialogContent className="flex max-h-[92dvh] flex-col overflow-hidden p-0 sm:max-w-2xl">
@@ -573,18 +600,27 @@ export function AdminProducts({ token }: { token: string }) {
             </div>
 
             {/* Main image */}
-            <SectionTitle hint="Shown on product cards. Upload a JPG/PNG/WebP or paste a path like /products/adult-tshirt.jpg.">
+            <SectionTitle hint="Choose a picture already on the website, upload a new one, or enter its path.">
               Main image
             </SectionTitle>
-            <div className="mt-2 flex items-center gap-3">
+            <div className="mt-2 flex flex-wrap items-center gap-2">
               <Thumb src={form.image} alt="Main image preview" className="h-16 w-16" />
               <Input
-                className="flex-1"
+                className="min-w-[160px] flex-1"
                 value={form.image}
                 onChange={(e) => set("image", e.target.value)}
                 placeholder="/products/adult-tshirt.jpg"
                 aria-label="Main image path"
               />
+              <Button
+                type="button"
+                variant="outline"
+                className="shrink-0 rounded-full"
+                onClick={() => setMediaTarget({ kind: "main" })}
+              >
+                <ImageIcon className="mr-1.5 h-4 w-4" aria-hidden />
+                Browse library
+              </Button>
               <Button
                 type="button"
                 variant="outline"
@@ -638,6 +674,17 @@ export function AdminProducts({ token }: { token: string }) {
                     maxLength={40}
                     aria-label={`Gallery image ${i + 1} label`}
                   />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="shrink-0 rounded-full"
+                    onClick={() => setMediaTarget({ kind: "gallery", index: i })}
+                    aria-label={"Choose gallery image " + (i + 1) + " from website library"}
+                    title="Browse website images"
+                  >
+                    <ImageIcon className="h-3.5 w-3.5" aria-hidden />
+                  </Button>
                   <Button
                     type="button"
                     variant="outline"
