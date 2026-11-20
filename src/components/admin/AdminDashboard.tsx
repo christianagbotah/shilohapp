@@ -54,6 +54,7 @@ import { useUi } from "@/store/ui";
 import { fetchJson, useStoreInfo } from "@/hooks/use-store-data";
 import { useToast } from "@/hooks/use-toast";
 import { formatGhs } from "@/lib/format";
+import { isLivePaymentQaOrder, merchandiseManifestOrders } from "@/lib/live-payment-qa-order";
 import { BrandLogo } from "@/components/store/BrandLogo";
 import {
   ORDER_STATUS_LABELS,
@@ -196,6 +197,7 @@ function OrderDetail({
   const [notes, setNotes] = useState(order.adminNotes ?? "");
   const [busy, setBusy] = useState<string | null>(null);
   const [manualReference, setManualReference] = useState("");
+  const isPaymentQa = isLivePaymentQaOrder(order);
 
   const act = async (label: string, body: Record<string, unknown>) => {
     setBusy(label);
@@ -220,7 +222,11 @@ function OrderDetail({
       <DialogHeader className="border-b border-border p-5">
         <DialogTitle className="flex flex-wrap items-center gap-3">
           <span className="font-display text-xl font-bold tracking-wider text-gold">{order.code}</span>
-          <StatusBadge status={order.status} />
+          {isPaymentQa ? (
+            <span className="rounded-lg border border-amber-500/35 bg-amber-500/10 px-2.5 py-1 text-xs font-semibold text-amber-300">
+              QA TEST · NO GOODS
+            </span>
+          ) : <StatusBadge status={order.status} />}
           <PaymentBadge status={order.paymentStatus} />
         </DialogTitle>
         <DialogDescription className="flex flex-wrap items-center gap-x-3 gap-y-1">
@@ -249,10 +255,45 @@ function OrderDetail({
       </DialogHeader>
 
       <div className="flex flex-col gap-5 p-5">
-        {order.adminNotes?.startsWith("[LIVE_PAYMENT_QA]") ? (
-          <p className="rounded-xl border border-amber-500/35 bg-amber-500/10 p-3 text-sm font-semibold text-amber-300">
-            Administrator live-money PAYMENT TEST — this is not a merchandise order. Do not fulfil, ship or contact for delivery.
-          </p>
+        {isPaymentQa ? (
+          <section
+            className={cn(
+              "rounded-xl border p-4",
+              order.paymentStatus === "paid"
+                ? "border-emerald-500/40 bg-emerald-500/10"
+                : "border-amber-500/35 bg-amber-500/10"
+            )}
+            role="status"
+          >
+            <div className="flex items-start gap-3">
+              <ShieldCheck
+                className={cn(
+                  "mt-0.5 h-5 w-5 shrink-0",
+                  order.paymentStatus === "paid" ? "text-emerald-400" : "text-amber-300"
+                )}
+                aria-hidden
+              />
+              <div className="min-w-0 space-y-1">
+                <p
+                  className={cn(
+                    "font-semibold",
+                    order.paymentStatus === "paid" ? "text-emerald-300" : "text-amber-300"
+                  )}
+                >
+                  {order.paymentStatus === "paid"
+                    ? "Payment test — verified successfully"
+                    : order.paymentStatus === "verifying"
+                      ? "Payment test — verification pending"
+                      : "Payment test — payment not confirmed"}
+                </p>
+                <p className="text-sm leading-relaxed text-muted-foreground">
+                  No merchandise fulfillment required. This administrator-only
+                  transaction tests Hubtel payment verification and notifications.
+                  Do not dispatch goods or contact this number for delivery.
+                </p>
+              </div>
+            </div>
+          </section>
         ) : null}
         {/* Customer */}
         <section className="grid gap-3 rounded-2xl border border-border bg-background/60 p-4 sm:grid-cols-2">
@@ -262,13 +303,17 @@ function OrderDetail({
           </div>
           <div>
             <p className="text-[0.65rem] font-semibold uppercase tracking-widest text-muted-foreground">Phone</p>
-            <a
-              href={`tel:${order.phone}`}
-              className="mt-1 inline-flex items-center gap-1.5 text-sm font-semibold text-gold hover:underline"
-            >
-              <Phone className="h-3.5 w-3.5" aria-hidden />
-              {order.phone}
-            </a>
+            {isPaymentQa ? (
+              <p className="mt-1 text-sm font-semibold">{order.phone}</p>
+            ) : (
+              <a
+                href={"tel:" + order.phone}
+                className="mt-1 inline-flex items-center gap-1.5 text-sm font-semibold text-gold hover:underline"
+              >
+                <Phone className="h-3.5 w-3.5" aria-hidden />
+                {order.phone}
+              </a>
+            )}
           </div>
           <div className="sm:col-span-2">
             <p className="text-[0.65rem] font-semibold uppercase tracking-widest text-muted-foreground">
@@ -281,7 +326,7 @@ function OrderDetail({
         {/* Items */}
         <section>
           <p className="mb-2 text-[0.65rem] font-semibold uppercase tracking-widest text-muted-foreground">
-            Items ({order.items.reduce((n, i) => n + i.quantity, 0)} units)
+            {isPaymentQa ? "Test entry (no merchandise)" : "Items (" + order.items.reduce((n, i) => n + i.quantity, 0) + " units)"}
           </p>
           <ul className="divide-y divide-border rounded-2xl border border-border bg-background/60">
             {order.items.map((item) => (
@@ -308,8 +353,53 @@ function OrderDetail({
           </ul>
         </section>
 
-        {/* Actions */}
-        <section className="flex flex-col gap-3">
+        {/* QA money tests are audit transactions, never merchandise orders. */}
+        {isPaymentQa ? (
+          <section className="flex flex-col gap-3" aria-label="QA payment status">
+            <p className="text-[0.65rem] font-semibold uppercase tracking-widest text-muted-foreground">
+              Hubtel payment test status
+            </p>
+            {order.paymentStatus === "paid" ? (
+              <p className="inline-flex w-fit items-center gap-2 rounded-full bg-emerald-500/10 px-4 py-2 text-sm font-semibold text-emerald-300">
+                <CheckCircle2 className="h-4 w-4" aria-hidden />
+                Payment verified · No delivery required
+              </p>
+            ) : (
+              <div className="space-y-3">
+                <p className="text-sm text-amber-300">
+                  The test payment has not been verified as paid. Do not charge it again.
+                </p>
+                {order.paymentMethod === "hubtel" ? (
+                  <Button
+                    variant="outline"
+                    disabled={busy !== null}
+                    onClick={async () => {
+                      setBusy("recheck");
+                      try {
+                        await fetchJson("/api/admin/orders/" + order.id + "/reconcile", { method: "POST" });
+                        await queryClient.invalidateQueries({ queryKey: ["admin-orders"] });
+                        toast({ title: "Hubtel test payment status checked" });
+                      } catch (err) {
+                        toast({
+                          title: "Verification unavailable",
+                          description: err instanceof Error ? err.message : "Try again later",
+                          variant: "destructive",
+                        });
+                      } finally {
+                        setBusy(null);
+                      }
+                    }}
+                    className="w-fit rounded-full border-gold/50 text-gold"
+                  >
+                    <RefreshCcw className="mr-2 h-4 w-4" aria-hidden />
+                    Recheck Hubtel test payment
+                  </Button>
+                ) : null}
+              </div>
+            )}
+          </section>
+        ) : (
+          <section className="flex flex-col gap-3">
           <p className="text-[0.65rem] font-semibold uppercase tracking-widest text-muted-foreground">
             Payment actions
           </p>
@@ -439,7 +529,8 @@ function OrderDetail({
               </p>
             )}
           </div>
-        </section>
+          </section>
+        )}
 
         {/* Notes */}
         <section className="grid gap-2">
@@ -552,6 +643,9 @@ function OrdersPanel({
     });
   }, [data, search, statusFilter, paymentFilter]);
 
+  // Payment QA tests are kept in the audit list but excluded from dispatch.
+  const manifestOrders = useMemo(() => merchandiseManifestOrders(orders), [orders]);
+
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
@@ -604,13 +698,16 @@ function OrdersPanel({
       {/* Batch actions */}
       <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-dashed border-border bg-card/50 p-3">
         <p className="mr-auto text-xs font-semibold uppercase tracking-widest text-muted-foreground">
-          {orders.length} order{orders.length === 1 ? "" : "s"} in view
+          {orders.length} entr{orders.length === 1 ? "y" : "ies"} in view
+          {orders.length > manifestOrders.length
+            ? " · " + (orders.length - manifestOrders.length) + " payment QA (no goods)"
+            : ""}
         </p>
         <Button
           variant="outline"
           size="sm"
-          disabled={orders.length === 0}
-          onClick={() => onPrintManifest(orders)}
+          disabled={manifestOrders.length === 0}
+          onClick={() => onPrintManifest(manifestOrders)}
           className="h-9 rounded-full border-border font-semibold hover:border-gold/40 hover:text-gold"
         >
           <FileText className="mr-1.5 h-3.5 w-3.5" aria-hidden />
@@ -662,10 +759,9 @@ function OrdersPanel({
                     <span className="font-display text-base font-bold tracking-wider text-gold">
                       {order.code}
                     </span>
-                    {order.adminNotes?.startsWith("[LIVE_PAYMENT_QA]") ? (
+                    {isLivePaymentQaOrder(order) ? (
                       <span className="rounded-lg border border-amber-500/35 px-2 py-1 text-xs font-bold text-amber-300">PAYMENT QA — NO GOODS</span>
-                    ) : null}
-                    <StatusBadge status={order.status} />
+                    ) : <StatusBadge status={order.status} />}
                     <PaymentBadge status={order.paymentStatus} />
                   </div>
                   <span className="text-xs text-muted-foreground">
