@@ -1,0 +1,23 @@
+[Unit]
+Description=Shiloh Store variant inventory administration (localhost only)
+After=network.target shiloh-store.service
+Requires=shiloh-store.service
+
+[Service]
+Type=simple
+User=lightworld
+Group=lightworld
+WorkingDirectory=/home/lightworld/services/shiloh-inventory
+Environment=NODE_ENV=production
+Environment=INVENTORY_PORT=3066
+EnvironmentFile=/etc/shiloh-store.env
+ExecStart=/home/lightworld/.bun/bin/bun /home/lightworld/services/shiloh-inventory/server.mjs
+Restart=on-failure
+RestartSec=3
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ReadWritePaths=/home/lightworld/data/shiloh-store
+
+[Install]
+WantedBy=multi-user.target
