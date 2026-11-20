@@ -90,20 +90,20 @@ export type SiteContent = {
 export const DEFAULT_SITE_CONTENT: SiteContent = {
   hero: {
     intro:
-      "The official Shiloh {year} merch — premium t-shirts, lacostes, jerseys and caps for adults and kids. Order in under a minute, pay instantly with MoMo or card, anywhere in Ghana.",
+      "The official Shiloh {year} collection — premium t-shirts, lacostes, jerseys and caps for adults and kids. Order in under a minute, pay instantly with MoMo or card, anywhere in Ghana.",
     ctaPrimary: "Shop the Collection",
     ctaSecondary: "Pay in One Tap",
     flyerImage: "/images/shiloh-flyer.jpg",
-    badgeTitle: "Official Convocation Merch",
+    badgeTitle: "Shiloh Collection",
     badgeSubtitle: "Quality you can trust",
-    trust: ["100% official merch", "Secure MoMo & card payment", "Delivery across Ghana"],
+    trust: ["Official Shiloh collection", "Secure MoMo & card payment", "Delivery across Ghana"],
   },
   marquee: {
-    extras: ["Official Convocation Merch", "Pay with Hubtel", "Adults & Kids"],
+    extras: ["Shiloh Collection", "Pay with Hubtel", "Adults & Kids"],
   },
   shop: {
     eyebrow: "The Collection",
-    title: "Shop the Merch",
+    title: "Shop the Collection",
     subtitle:
       "Every piece carries the Shiloh {year} gold crest. Choose your type, colour, size and quantity — for every member of the family.",
   },
@@ -114,8 +114,8 @@ export const DEFAULT_SITE_CONTENT: SiteContent = {
       "From picking your piece to instant confirmation — the whole flow takes less than two minutes on your phone.",
     steps: [
       {
-        title: "Pick your merch",
-        body: "Browse t-shirts, lacostes, jerseys and caps for adults and kids. Choose colour, size and quantity — caps come soft or hard.",
+        title: "Choose your items",
+        body: "Browse t-shirts, lacostes, jerseys and caps for adults and kids. Choose colour, size and quantity — caps come in Hard and Net styles.",
       },
       {
         title: "Place your order",
@@ -132,7 +132,7 @@ export const DEFAULT_SITE_CONTENT: SiteContent = {
     title: "Payment,",
     titleAccent: "made easy",
     subtitle:
-      "Pick your merch, tap Pay Now and Hubtel's secure checkout takes it from there — complete the steps for your chosen wallet or card, then check the verified status using your order reference.",
+      "Choose your items, tap Pay Now and Hubtel's secure checkout takes it from there — complete the steps for your chosen wallet or card, then check the verified status using your order reference.",
     features: [
       {
         title: "Every wallet & card",
@@ -176,7 +176,7 @@ export const DEFAULT_SITE_CONTENT: SiteContent = {
       },
       {
         q: "What sizes are available?",
-        a: "T-shirts, lacostes and jerseys come in adult sizes S–XXL and kids sizes 2–3y up to 12–13y. Caps come in S/M, L/XL and One Size, in both soft and hard styles.",
+        a: "T-shirts, lacostes and jerseys come in adult sizes S–XXL and kids sizes 2–3y up to 12–13y. Caps come in S/M, L/XL and One Size, in Hard and Net styles.",
       },
       {
         q: "Can I order for my whole family in one go?",
@@ -200,9 +200,9 @@ export const DEFAULT_SITE_CONTENT: SiteContent = {
   },
   footer: {
     about:
-      "The official merch store for the Shiloh convocation of the Winners' family worldwide — serving members across Ghana with premium t-shirts, lacostes, jerseys and caps for adults and kids.",
+      "The official Shiloh shopping site for the annual Shiloh convocation of the Winners' family worldwide — serving members across Ghana with premium t-shirts, lacostes, jerseys and caps for adults and kids.",
     location: "Winners Chapel International — Ghana",
-    copyright: "© {year} Shiloh Merch Store • Winners Chapel International, Ghana",
+    copyright: "© {year} Shiloh Orders • Winners Chapel International, Ghana",
   },
   lookbook: {
     eyebrow: "The Lookbook",
@@ -222,7 +222,7 @@ export const DEFAULT_SITE_CONTENT: SiteContent = {
       {
         image: "/products/look-3.jpg",
         title: "Crowns of the Convocation",
-        description: "Soft or hard crown, every colour of praise — embroidered with the Far Above crest.",
+        description: "Hard or net cap, every colour of praise — embroidered with the Far Above crest.",
       },
       {
         image: "/products/look-4.jpg",

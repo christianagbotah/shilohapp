@@ -115,7 +115,7 @@ function formFromProduct(p: AdminProductDTO): FormState {
     gallery: p.gallery.length ? p.gallery.map((g) => ({ ...g })) : [{ src: "", label: "Front" }],
     colors: p.colors.length ? p.colors.map((c) => ({ ...c })) : [{ name: "", hex: COLOUR_PRESETS[0] }],
     sizes: [...p.sizes],
-    capStyles: p.capStyles ? [...p.capStyles] : [],
+    capStyles: p.capStyles ? p.capStyles.map((style) => style === "Soft" ? "Net" : style) : [],
   };
 }
 
@@ -207,7 +207,7 @@ export function AdminProducts({ token }: { token: string }) {
       return;
     }
     if (!Number.isFinite(price) || price <= 0) {
-      toast({ title: "Price required", description: "Enter a price in GH₵, e.g. 80." });
+      toast({ title: "Price required", description: "Enter a price in ₵, e.g. 80." });
       return;
     }
     if (!form.image.trim()) {
@@ -544,7 +544,7 @@ export function AdminProducts({ token }: { token: string }) {
                 </Select>
               </div>
               <div>
-                <Label htmlFor="p-price">Price (GH₵)</Label>
+                <Label htmlFor="p-price">Price (₵)</Label>
                 <Input
                   id="p-price"
                   className="mt-1.5"
@@ -864,7 +864,7 @@ export function AdminProducts({ token }: { token: string }) {
             {/* Cap styles */}
             {form.type === "cap" ? (
               <>
-                <SectionTitle hint="Offer Soft and/or Hard crown options.">
+                <SectionTitle hint="Offer Hard cap and/or Net cap options.">
                   Cap styles ({form.capStyles.length})
                 </SectionTitle>
                 <div className="mt-2 flex flex-wrap items-center gap-2">
@@ -884,7 +884,7 @@ export function AdminProducts({ token }: { token: string }) {
                       </button>
                     </span>
                   ))}
-                  {["Soft", "Hard"]
+                  {["Hard", "Net"]
                     .filter((s) => !form.capStyles.includes(s))
                     .map((s) => (
                       <Button

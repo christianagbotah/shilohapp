@@ -8,7 +8,7 @@ export type PrintJob =
   | { kind: "manifest"; orders: OrderDTO[] };
 
 const ghs = (n: number) =>
-  `GH₵${n.toLocaleString("en-GH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  `₵${n.toLocaleString("en-GH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
 const fmtDate = (iso: string | null) =>
   iso
@@ -30,7 +30,7 @@ function Letterhead({ year, subtitle }: { year: string; subtitle: string }) {
             WINNERS CHAPEL INTERNATIONAL
           </p>
           <p style={{ margin: "4px 0 0", fontSize: 24, fontWeight: 800, color: "#b8860b" }}>
-            SHILOH {year} — OFFICIAL MERCH
+            SHILOH {year} — OFFICIAL ORDER
           </p>
         </div>
         <div style={{ textAlign: "right", fontSize: 10, color: "#57534e", lineHeight: 1.5 }}>
@@ -169,7 +169,7 @@ export function InvoiceDoc({ order, year }: { order: OrderDTO; year: string }) {
         </div>
       </footer>
       <p style={{ marginTop: 18, textAlign: "center", fontSize: 10, color: "#57534e" }}>
-        Thank you for shopping Shiloh {year} official merch — track your order any time with code{" "}
+        Thank you for ordering from Shiloh {year}. Track your order using code{" "}
         <strong>{order.code}</strong>.
       </p>
     </div>

@@ -170,7 +170,7 @@ export function AdminLivePaymentTest({
         <p className="mt-2 text-xs text-muted-foreground">
           Only the signed-in administrator can create a test checkout. Public customer
           checkout remains disabled. A test transaction is recorded for audit, but
-          no merchandise is supplied. Creating a link does not charge money; you
+          no goods are supplied. Creating a link does not charge money; you
           must deliberately pay on Hubtel.
         </p>
       </div>
@@ -225,7 +225,7 @@ export function AdminLivePaymentTest({
         />
         <span className="text-xs leading-relaxed">
           I understand that completing checkout will deduct real money and this is
-          a payment-processing test, not a purchase of merchandise.
+          a payment-processing test, not a purchase of goods.
         </span>
       </label>
 

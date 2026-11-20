@@ -20,8 +20,8 @@ const integer = (value, min = 0, max = 1_000_000) => {
   return n;
 };
 const headers = { 'Content-Type':'text/html; charset=utf-8', 'Cache-Control':'private, no-store',
- 'X-Content-Type-Options':'nosniff', 'X-Frame-Options':'DENY', 'Referrer-Policy':'same-origin',
- 'Content-Security-Policy':"default-src 'none'; style-src 'unsafe-inline'; form-action 'self'; base-uri 'none'; frame-ancestors 'none'",
+ 'X-Content-Type-Options':'nosniff', 'X-Frame-Options':'SAMEORIGIN', 'Referrer-Policy':'same-origin',
+ 'Content-Security-Policy':"default-src 'none'; style-src 'unsafe-inline'; form-action 'self'; base-uri 'none'; frame-ancestors 'self'",
 };
 const reply = (content,status=200,extra={})=>new Response(content,{status,headers:{...headers,...extra}});
 const PAGE = '/backoffice/inventory';
@@ -63,6 +63,7 @@ function trackedRows() {
 }
 function statusBadge(n,enabled,threshold){return !enabled?'Paused':n<=0?'Sold out':n<=threshold?'Low stock':'Available';}
 function render(req,ctx,notice='',error='') {
+ const embedded = new URL(req.url).searchParams.get('embedded') === '1';
  const rows=trackedRows(), options=allVariants();
  const trackedKey=new Set(rows.map(r=>JSON.stringify([r.productId,r.color,r.size,r.capStyle])));
  const untracked=options.filter(o=>!trackedKey.has(JSON.stringify([o.productId,o.color,o.size,o.capStyle])));
@@ -87,7 +88,7 @@ function render(req,ctx,notice='',error='') {
     <td class="num">${fmt(r.reserved)}</td>
     <td class="num"><strong>${fmt(free)}</strong></td>
     <td><span class="status ${statusClass}">${esc(state)}</span></td>
-    <td><form class="edit" method="POST" action="${PAGE}">
+    <td><form class="edit" method="POST" action="${PAGE}${embedded ? '?embedded=1' : ''}">
       <input type="hidden" name="csrf" value="${ctx.csrf}"/>
       <input type="hidden" name="action" value="update"/>
       <input type="hidden" name="id" value="${r.id}"/>
@@ -139,13 +140,38 @@ function render(req,ctx,notice='',error='') {
  .table-title a{font-size:12px;color:#156a47;font-weight:650}footer{color:#6e8276;font-size:12px;margin-top:24px}
  @media(max-width:950px){.metrics{grid-template-columns:repeat(2,1fr)}.new-form{grid-template-columns:1fr 1fr}.new-form label:first-child{grid-column:1/-1}.new-form button{grid-column:1/-1}.top{padding:19px 18px}}
  @media(max-width:560px){h1{font-size:19px}main{padding:17px 12px}.metrics{gap:8px}.metric{padding:13px}.metric b{font-size:24px}.panel{padding:14px}.new-form{grid-template-columns:1fr 1fr}.edit{min-width:270px}.top .back{font-size:12px}.mobile-show{display:block;font-size:11px}.num{text-align:right}}
+
+ :root{background:#0b0c11;color:#f4f0e8}
+ body{background:#0b0c11;color:#f4f0e8}
+ .top{background:#13141d;border-bottom:1px solid #403721;color:#f8ecd4}
+ .brand .logo{background:#b99645;color:#141312}
+ h1,h2{color:#fff3d9}
+ .sub,.intro,.muted,.panel .muted,.metric span,footer,label{color:#b6b2b0}
+ .metric,.panel{background:#15161f;border-color:#36333c;color:#eee9e2;box-shadow:none}
+ input,select{background:#10121a;border-color:#595047;color:#f6f1e9}
+ input:focus-visible,select:focus-visible,.btn:focus-visible{outline-color:#d4b05b}
+ .btn{background:#c49b49;color:#14121a}
+ .btn:hover{background:#e5b85a;filter:none}
+ .ghost{background:#363340;color:#f2e8d3}
+ th{background:#24232d;color:#d2c39b}
+ td{border-bottom-color:#35313d}
+ .status.ok{background:#153d31;color:#91e4b9}
+ .status.low{background:#573c1a;color:#f3d18f}
+ .status.paused{background:#30313b;color:#c6c8d2}
+ .notice{background:#15392c;color:#baf4ca}
+ .error{background:#4b2023;color:#ffc9c9}
+ .back{border-color:#665330;color:#f6d681}
+ body.embedded .top{display:none}
+ body.embedded main{padding:8px 6px 24px;max-width:none}
+ body.embedded .intro{margin-top:4px}
+ @media(max-width:560px){body.embedded main{padding:6px 1px 16px}}
  </style></head>
- <body><header class="top"><div class="brand"><div class="logo">S</div><div><h1>Inventory control</h1><div class="sub">Shiloh 2026 · Back Office</div></div></div>
+ <body class="${embedded ? 'embedded' : ''}"><header class="top"><div class="brand"><div class="logo">S</div><div><h1>Inventory control</h1><div class="sub">Shiloh 2026 · Back Office</div></div></div>
  <a href="/backoffice" class="back">← Back to orders & settings</a></header>
  <main>${messages}<p class="intro">Track each product, colour, size and cap style separately. Configured variants are automatically reserved when an order is placed, released on cancellation, and deducted at fulfillment. <strong>Unconfigured variants remain available without a quantity limit</strong> until you set their stock.</p>
  <section class="metrics"><div class="metric"><span>Stock-controlled variants</span><b>${fmt(active)}</b></div><div class="metric"><span>Available units</span><b>${fmt(total)}</b></div><div class="metric"><span>Low / sold-out variants</span><b>${fmt(low)}</b></div><div class="metric"><span>Untracked variants</span><b>${fmt(untracked.length)}</b></div></section>
  <section class="panel"><h2>Add a product variant</h2><span class="muted">Set an opening quantity for one exact combination. Previously placed orders are not retroactively reserved.</span>
- <form action="${PAGE}" method="POST" class="new-form">
+ <form action="${PAGE}${embedded ? '?embedded=1' : ''}" method="POST" class="new-form">
  <input type="hidden" name="csrf" value="${ctx.csrf}"/><input type="hidden" name="action" value="create"/>
  <label>Product, colour, size and cap style<select name="variant" required>${availableOptions||'<option value="">All variants have been configured</option>'}</select></label>
  <label>On hand<input type="number" inputmode="numeric" name="onHand" value="0" min="0" max="1000000" required/></label>
@@ -221,7 +247,7 @@ Bun.serve({
     const content=await req.text();if(content.length>12000)return reply('Form too large',413);
     try{save(ctx,new URLSearchParams(content));}
     catch(err){return reply(render(req,ctx,'',err instanceof Error?err.message:'Could not update stock'),400);}
-    return Response.redirect('https://'+HOST+PAGE+'?notice=saved',303);
+    return Response.redirect('https://'+HOST+PAGE+'?notice=saved'+(url.searchParams.get('embedded')==='1'?'&embedded=1':''),303);
    }
    return reply('Not found',404);
   }catch(err){

@@ -287,7 +287,7 @@ function OrderDetail({
                       : "Payment test — payment not confirmed"}
                 </p>
                 <p className="text-sm leading-relaxed text-muted-foreground">
-                  No merchandise fulfillment required. This administrator-only
+                  No order delivery required. This administrator-only
                   transaction tests Hubtel payment verification and notifications.
                   Do not dispatch goods or contact this number for delivery.
                 </p>
@@ -326,7 +326,7 @@ function OrderDetail({
         {/* Items */}
         <section>
           <p className="mb-2 text-[0.65rem] font-semibold uppercase tracking-widest text-muted-foreground">
-            {isPaymentQa ? "Test entry (no merchandise)" : "Items (" + order.items.reduce((n, i) => n + i.quantity, 0) + " units)"}
+            {isPaymentQa ? "Test entry (no goods)" : "Items (" + order.items.reduce((n, i) => n + i.quantity, 0) + " units)"}
           </p>
           <ul className="divide-y divide-border rounded-2xl border border-border bg-background/60">
             {order.items.map((item) => (
@@ -813,7 +813,8 @@ type BackOfficePage =
   | "products"
   | "content"
   | "alerts"
-  | "settings";
+  | "settings"
+  | "inventory";
 
 type NavigationItem = {
   id: BackOfficePage;
@@ -835,6 +836,7 @@ const BACKOFFICE_GROUPS: { label: string; items: NavigationItem[] }[] = [
     label: "STOREFRONT",
     items: [
       { id: "products", label: "Products", detail: "Catalog and pricing", icon: Package },
+      { id: "inventory", label: "Inventory & stock", detail: "Optional stock controls", icon: Package },
       { id: "content", label: "Site content", detail: "Homepage and copy", icon: PenLine },
     ],
   },
@@ -1152,19 +1154,6 @@ export function AdminDashboard() {
                 </div>
               </div>
             ))}
-            <div className="border-t border-border/70 pt-4">
-              <a
-                href="/backoffice/inventory"
-                title="Inventory & stock"
-                className={cn(
-                  "group flex min-h-11 w-full items-center gap-3 rounded-xl border border-transparent px-3 text-left text-sm font-semibold text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground focus-visible:outline-2 focus-visible:outline-gold",
-                  sidebarCollapsed && "lg:justify-center lg:px-2"
-                )}
-              >
-                <Package className="size-[19px] shrink-0" aria-hidden />
-                <span className={cn("min-w-0 flex-1 truncate", sidebarCollapsed && "lg:hidden")}>Inventory & stock</span>
-              </a>
-            </div>
           </nav>
           <div className="shrink-0 border-t border-border p-3">
             <a
@@ -1268,6 +1257,20 @@ export function AdminDashboard() {
             {section === "insights" ? <AdminInsights orders={data?.orders?.filter((order) => !order.adminNotes?.startsWith("[LIVE_PAYMENT_QA]")) ?? null} loading={isLoading} /> : null}
             {section === "products" ? <AdminProducts token={token} /> : null}
             {section === "content" ? <AdminContent token={token} /> : null}
+            {section === "inventory" ? (
+              <section className="space-y-3" aria-label="Inventory management">
+                <p className="rounded-xl border border-gold/20 bg-gold/5 px-4 py-3 text-sm text-muted-foreground">
+                  Inventory tracking is optional. Products can be sold without entering stock.
+                  Use this section only when you want to limit stock by colour, size or cap style.
+                </p>
+                <iframe
+                  title="Inventory management"
+                  src="/backoffice/inventory?embedded=1"
+                  className="block min-h-[820px] w-full rounded-2xl border border-border bg-card lg:min-h-[920px]"
+                  loading="lazy"
+                />
+              </section>
+            ) : null}
             {section === "alerts" ? <AdminAlerts token={token} /> : null}
             {section === "settings" ? <AdminSettings token={token} /> : null}
           </main>
