@@ -208,6 +208,7 @@ export function Hero() {
           >
             <Image
               src={c.flyerImage}
+              unoptimized={c.flyerImage.startsWith("/products/")}
               alt={`Official Shiloh ${year} — ${tagline} flyer, Winners Chapel International`}
               fill
               sizes="(max-width: 1024px) 100vw, 560px"
@@ -250,6 +251,7 @@ export function Hero() {
           <div className="relative mx-auto aspect-video w-full max-w-2xl overflow-hidden rounded-2xl bg-secondary/40">
             <Image
               src={c.flyerImage}
+              unoptimized={c.flyerImage.startsWith("/products/")}
               alt={`Official Shiloh ${year} — ${tagline} flyer, Winners Chapel International`}
               fill
               sizes="(max-width: 768px) 90vw, 640px"
