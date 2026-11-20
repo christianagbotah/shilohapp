@@ -1,0 +1,10 @@
+[Unit]
+Description=Weekly Shiloh Store backup restore and integrity drill
+
+[Timer]
+OnCalendar=Sat *-*-* 03:15:00 UTC
+Persistent=true
+Unit=shiloh-store-restore-drill.service
+
+[Install]
+WantedBy=timers.target
