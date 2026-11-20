@@ -237,6 +237,10 @@ export type StatusResult =
       status: CheckoutStatus;
       raw: string;
       amount: number | null;
+      /** Hubtel processing charge in cedis, when reported. */
+      charges: number | null;
+      /** Net merchant amount in cedis, when reported. */
+      amountAfterCharges: number | null;
       clientReference: string;
       transactionId: string;
     }
@@ -276,13 +280,18 @@ export async function verifyHubtelTransaction(
     if (!detail || typeof detail.status !== "string") {
       return { ok: false, error: "Hubtel status response missing data.status" };
     }
-    const amount = typeof detail.amount === "number" ? detail.amount
-      : typeof detail.amount === "string" ? Number(detail.amount) : NaN;
+    const finiteAmount = (value: unknown): number | null => {
+      if (typeof value !== "number" && (typeof value !== "string" || !value.trim())) return null;
+      const parsed = Number(value);
+      return Number.isFinite(parsed) ? parsed : null;
+    };
     return {
       ok: true,
       raw: detail.status,
       status: normaliseStatus(detail.status),
-      amount: Number.isFinite(amount) ? amount : null,
+      amount: finiteAmount(detail.amount),
+      charges: finiteAmount(detail.charges),
+      amountAfterCharges: finiteAmount(detail.amountAfterCharges),
       clientReference: typeof detail.clientReference === "string" ? detail.clientReference : "",
       transactionId: typeof detail.transactionId === "string" ? detail.transactionId : "",
     };

@@ -47,11 +47,26 @@ function verifyAmount(
   attempt?: PaymentAttempt | null
 ): boolean {
   const expected = attempt ? attempt.expectedPesewas : Math.round(order.total * 100);
+  if (
+    result.clientReference.toUpperCase() !== reference.toUpperCase() ||
+    result.amount === null || !Number.isFinite(result.amount)
+  ) return false;
+
+  const grossPesewas = Math.round(result.amount * 100);
+  // In the normal fee model the gross collection matches the order.
+  if (grossPesewas === expected) return true;
+
+  // Some Hubtel collection accounts add their processing fee on top of
+  // the requested checkout price. Then gross = requested price + charges.
+  // Accept only when Hubtel independently reports BOTH the exact net
+  // amount for this order and a fee that reconciles to the gross amount.
+  if (
+    result.amountAfterCharges === null || !Number.isFinite(result.amountAfterCharges) ||
+    result.charges === null || !Number.isFinite(result.charges) || result.charges < 0
+  ) return false;
   return (
-    result.clientReference.toUpperCase() === reference.toUpperCase() &&
-    result.amount !== null &&
-    Number.isFinite(result.amount) &&
-    Math.round(result.amount * 100) === expected
+    Math.round(result.amountAfterCharges * 100) === expected &&
+    Math.round((result.amountAfterCharges + result.charges) * 100) === grossPesewas
   );
 }
 
@@ -167,7 +182,7 @@ export async function applyWebhookResult(
     return currentStatus(order, "unknown");
   }
   if (info.amount !== null &&
-      Math.round(info.amount * 100) !== (attempt?.expectedPesewas ?? Math.round(order.total * 100))) {
+      Math.round(info.amount * 100) < (attempt?.expectedPesewas ?? Math.round(order.total * 100))) {
     console.error("Hubtel callback amount mismatch", {
       reference, order: order.code,
       callbackAmount: info.amount,
