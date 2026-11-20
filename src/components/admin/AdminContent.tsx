@@ -3,12 +3,13 @@
 import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import { useQueryClient } from "@tanstack/react-query";
-import { Loader2, Plus, RotateCcw, Save, Trash2, Upload } from "lucide-react";
+import { ImageIcon, Loader2, Plus, RotateCcw, Save, Trash2, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { fetchJson } from "@/hooks/use-store-data";
+import { MediaLibraryPicker } from "@/components/admin/MediaLibraryPicker";
 import { useToast } from "@/hooks/use-toast";
 import type { SiteContent } from "@/lib/site-content";
 import { prepareSectionForSave, splitCommasForEditing, splitLinesForEditing } from "@/lib/content-editor";
@@ -119,6 +120,7 @@ function ImageField({
 }) {
   const { toast } = useToast();
   const [uploading, setUploading] = useState(false);
+  const [libraryOpen, setLibraryOpen] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
   const pick = async (file: File) => {
@@ -145,7 +147,7 @@ function ImageField({
 
   return (
     <Field id={id} label={label} hint="JPG, PNG or WebP up to 4 MB.">
-      <div className="flex items-center gap-3">
+      <div className="flex flex-wrap items-center gap-3">
         <div className={cn("relative w-28 shrink-0 overflow-hidden rounded-lg border border-border bg-secondary", aspect)}>
           <Image src={value || "/images/shiloh-flyer.jpg"} alt="" fill sizes="112px" className="object-cover" />
         </div>
@@ -165,6 +167,16 @@ function ImageField({
           type="button"
           variant="outline"
           size="sm"
+          onClick={() => setLibraryOpen(true)}
+          className="rounded-full"
+        >
+          <ImageIcon className="mr-1.5 h-3.5 w-3.5" aria-hidden />
+          Browse library
+        </Button>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
           onClick={() => fileRef.current?.click()}
           disabled={uploading}
           className="rounded-full"
@@ -177,6 +189,13 @@ function ImageField({
           {uploading ? "Uploading…" : "Upload image"}
         </Button>
       </div>
+      <MediaLibraryPicker
+        open={libraryOpen}
+        onOpenChange={setLibraryOpen}
+        onSelect={onChange}
+        token={token}
+        title={"Choose " + label.toLowerCase()}
+      />
     </Field>
   );
 }
