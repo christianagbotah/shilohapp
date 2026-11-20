@@ -1,26 +1,30 @@
 import { NextRequest, NextResponse } from "next/server";
-import { mkdir, readdir, writeFile } from "node:fs/promises";
+import { mkdir, writeFile } from "node:fs/promises";
 import { randomBytes } from "node:crypto";
 import path from "node:path";
 import sharp from "sharp";
 import { isAdminRequest } from "@/lib/admin-auth";
+import { listMediaLibrary } from "@/lib/media-library";
 
 export const dynamic = "force-dynamic";
 
 const ALLOWED = new Set(["image/jpeg", "image/png", "image/webp"]);
 const MAX_BYTES = 4 * 1024 * 1024;
 const MAX_PIXELS = 24_000_000;
-const PRODUCTS_DIR = path.join(process.cwd(), "public", "products");
+const PUBLIC_DIR = path.join(process.cwd(), "public");
+// On the VPS uploads live outside versioned releases, and /products/ is
+// served by Nginx from that persistent directory.
+const PRODUCTS_DIR = process.env.SHILOH_MEDIA_DIR || path.join(PUBLIC_DIR, "products");
 
 export async function GET(req: NextRequest) {
   if (!(await isAdminRequest(req))) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   try {
-    await mkdir(PRODUCTS_DIR, { recursive: true });
-    const files = await readdir(PRODUCTS_DIR);
+    const items = await listMediaLibrary(PUBLIC_DIR, process.env.SHILOH_MEDIA_DIR);
     return NextResponse.json({
-      images: files.filter((name) => /\.(jpe?g|png|webp)$/i.test(name)).sort()
-        .map((name) => "/products/" + name),
-    });
+      items,
+      // Kept for older integrations of this endpoint.
+      images: items.map((item) => item.path),
+    }, { headers: { "Cache-Control": "private, no-store" } });
   } catch (err) {
     console.error("Admin image listing failed", err);
     return NextResponse.json({ error: "Image gallery is unavailable" }, { status: 500 });
