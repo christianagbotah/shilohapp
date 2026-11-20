@@ -166,7 +166,7 @@ export function CheckoutDialog() {
               {items.map((i) => (
                 <li key={i.key} className="flex items-center gap-3 text-sm">
                   <div className="relative h-11 w-11 shrink-0 overflow-hidden rounded-lg bg-secondary">
-                    <Image src={i.image} alt="" fill sizes="44px" className="object-cover" />
+                    <Image src={i.image} alt="" fill sizes="44px" unoptimized={i.image.startsWith("/products/")} className="object-cover" />
                   </div>
                   <div className="min-w-0 flex-1">
                     <p className="truncate font-medium leading-tight">
