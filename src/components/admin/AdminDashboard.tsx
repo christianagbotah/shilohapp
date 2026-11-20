@@ -1056,6 +1056,19 @@ export function AdminDashboard() {
                 </div>
               </div>
             ))}
+            <div className="border-t border-border/70 pt-4">
+              <a
+                href="/backoffice/inventory"
+                title="Inventory & stock"
+                className={cn(
+                  "group flex min-h-11 w-full items-center gap-3 rounded-xl border border-transparent px-3 text-left text-sm font-semibold text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground focus-visible:outline-2 focus-visible:outline-gold",
+                  sidebarCollapsed && "lg:justify-center lg:px-2"
+                )}
+              >
+                <Package className="size-[19px] shrink-0" aria-hidden />
+                <span className={cn("min-w-0 flex-1 truncate", sidebarCollapsed && "lg:hidden")}>Inventory & stock</span>
+              </a>
+            </div>
           </nav>
           <div className="shrink-0 border-t border-border p-3">
             <a
