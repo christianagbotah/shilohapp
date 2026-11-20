@@ -21,3 +21,17 @@ Before switching releases, make sure the folder is owned by the application user
 - `bun test tests/media-library.test.ts` tests product + site discovery, persistent-file deduplication, extension allowlist and missing folders.
 - `bun run typecheck` validates the media picker and both editor integrations.
 - Verify the live authenticated list, a test upload, file retrieval and image previews using an isolated order database before enabling production.
+
+
+### VPS web-server access
+
+The Shiloh Webuzo Nginx worker runs as `nobody`, while the persistent media folder is within private `/home/lightworld/data/shiloh-store`. Give that worker **execute-only traversal** on the two ancestors, not public listing or database access:
+
+```bash
+setfacl -m u:nobody:--x /home/lightworld/data/shiloh-store
+setfacl -m u:nobody:--x /home/lightworld/data/shiloh-store/media
+```
+
+Nginx's Shiloh custom-domain configuration serves `/products/` with a `location ^~ /products/` alias targeting `/home/lightworld/data/shiloh-store/media/products/`, with autoindex disabled and GET/HEAD only. Test `nginx -t` before reload, then check an existing and a new WebP image through HTTPS.
+
+**Important:** Next.js 16 standalone's built-in static-file route does not expose newly uploaded filenames added after the build. Nginx must serve them directly. Components rendering `/products/` images therefore set Next Image `unoptimized` to produce direct same-origin URLs instead of asking the immutable Next.js image optimizer for a newly uploaded file. Existing `/images/` artwork can still use the image optimizer.
